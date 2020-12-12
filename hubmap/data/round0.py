@@ -105,6 +105,8 @@ def process_split(samples, data_name, split, overfit, size, stride, **kwargs):
                 continue
             if overfit and dataset.image_id > 5:
                 break
+        if overfit and dataset.image_id > 5:
+            break
         dataset.dump_annotations()
 
 
