@@ -7,6 +7,7 @@ from box import Box
 
 from hubmap.data import common, reader
 from PIL import Image
+from skimage.color import rgb2hsv
 from tqdm import tqdm
 
 
@@ -48,13 +49,13 @@ class DatasetConstructor(object):
         drecord = Box(info)
         drecord['id'] = self.image_id
         name = uuid.uuid4().hex
-        name = 'image_{}.png'.format(name)
-        drecord.image_path = os.path.join(self.dest_folder, 'data', name)
+        img_name = 'image_{}.png'.format(name)
+        drecord.image_path = os.path.join(self.dest_folder, 'data', img_name)
         image = Image.fromarray(img)
         self.save(image, drecord.image_path, 'image')
 
-        name = 'seg_{}.png'.format(name)
-        drecord.seg_path = os.path.join(self.dest_folder, 'data', name)
+        mask_name = 'seg_{}.png'.format(name)
+        drecord.seg_path = os.path.join(self.dest_folder, 'data', mask_name)
         mask = Image.fromarray(mask, 'L')
         self.save(mask, drecord.seg_path, 'image')
         self.dataset.data.append(drecord)
@@ -71,20 +72,35 @@ class DatasetConstructor(object):
         self.save(self.dataset, fname, "annotations")
 
 
-def process_split(samples, data_name, split, overfit, **kwargs):
+def is_valid_patch(img):
+    saturation = rgb2hsv(img[:, :, :3])[:, :, 1]
+    if (saturation > 0.15).mean() <= 0.1 or (img / 255.0).mean() <= 0.1:
+        return False
+    return True
+
+
+def process_split(samples, data_name, split, overfit, size, stride, **kwargs):
     r = reader.Reader()
     dataset = DatasetConstructor(data_name,
                                  split=split,
                                  overfit=overfit,
+                                 size=size,
+                                 stride=stride,
                                  **kwargs)
     datas = []
     for idx, sample_id in enumerate(samples):
         print('Processing {}/{}'.format(idx, len(samples)))
         img = r.get_image(sample_id)
         mask = r.get_segmentation(sample_id)
-        patch_generator = generate_patches(img, mask, size=256, stride=0.5)
+        patch_generator = generate_patches(img, mask, size=size, stride=stride)
         for img_patch, mask_patch in patch_generator:
-            dataset.process_record(r[sample_id], img_patch, mask_patch)
+            if not is_valid_patch(img_patch):
+                continue
+            try:
+                dataset.process_record(r[sample_id], img_patch, mask_patch)
+            except Exception as e:
+                print(e)
+                continue
             if overfit and dataset.image_id > 5:
                 break
         if overfit:
@@ -101,7 +117,8 @@ def create_dataset(data_name,
                    overwrite=False,
                    overfit=False,
                    maintainer='clement',
-                   total=10000,
+                   size=256,
+                   stride=0.5,
                    **kwargs):
     if overfit:
         data_name = '{}_overfit'.format(data_name)
@@ -118,4 +135,6 @@ def create_dataset(data_name,
                       data_name=data_name,
                       split=split,
                       overwrite=overwrite,
-                      overfit=overfit)
+                      overfit=overfit,
+                      size=size,
+                      stride=stride)

@@ -21,3 +21,4 @@ boto3
 train[s3]
 pytorch-lightning-bolts
 monai[all]
+scikit-image

@@ -42,7 +42,7 @@ class Reader(object):
         with open(fname, 'r') as f:
             data = json.load(f)
         mask = None
-        for globul in tqdm(data):
+        for idx, globul in tqdm(enumerate(data), total=len(data)):
             height, width = self[sample_id]['height_pixels'], self[sample_id][
                 'width_pixels']
             img = Image.new('L', (width, height), 0)
