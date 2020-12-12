@@ -37,7 +37,7 @@ class Reader(object):
         image, _ = reader.get_data(raw_image)
         return image
 
-    def get_segmentation(self, sample_id):
+    def get_segmentation(self, sample_id, debug=False):
         fname = os.path.join(DATA_PATH, 'train', "{}.json".format(sample_id))
         with open(fname, 'r') as f:
             data = json.load(f)
@@ -53,4 +53,6 @@ class Reader(object):
                 mask = np.array(img).astype(np.bool)
                 continue
             mask += np.array(img).astype(np.bool)
+            if debug:
+                break
         return mask

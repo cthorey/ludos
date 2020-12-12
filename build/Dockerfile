@@ -13,6 +13,7 @@ RUN apt update && \
 # install our library
 COPY . /workdir
 RUN pip3 install -r /workdir/build/requirements.txt
+RUN pip3 install monai[all]
 RUN pip3 install -e /workdir/
 
 # set up ipython

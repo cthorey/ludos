@@ -91,10 +91,12 @@ def process_split(samples, data_name, split, overfit, size, stride, **kwargs):
     for idx, sample_id in enumerate(samples):
         print('Processing {}/{}'.format(idx, len(samples)))
         img = r.get_image(sample_id)
-        mask = r.get_segmentation(sample_id)
+        mask = r.get_segmentation(sample_id, debug=overfit)
         patch_generator = generate_patches(img, mask, size=size, stride=stride)
         for img_patch, mask_patch in patch_generator:
             if not is_valid_patch(img_patch):
+                continue
+            if overfit and np.sum(mask_patch) < 10:
                 continue
             try:
                 dataset.process_record(r[sample_id], img_patch, mask_patch)
@@ -103,9 +105,7 @@ def process_split(samples, data_name, split, overfit, size, stride, **kwargs):
                 continue
             if overfit and dataset.image_id > 5:
                 break
-        if overfit:
-            break
-    dataset.dump_annotations()
+        dataset.dump_annotations()
 
 
 def get_split(train):
@@ -117,7 +117,7 @@ def create_dataset(data_name,
                    overwrite=False,
                    overfit=False,
                    maintainer='clement',
-                   size=256,
+                   size=1024,
                    stride=0.5,
                    **kwargs):
     if overfit:
