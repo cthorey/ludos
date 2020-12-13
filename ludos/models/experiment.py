@@ -18,8 +18,8 @@ import pandas as pd
 import torch
 from orm.dionysos import VegaiModelzoo, session_scope
 from trains import Task
-from aiplayground.models import common
-from aiplayground.utils import dictionary, s3
+from ludos.models import common
+from ludos.utils import dictionary, s3
 
 ROOT_DIR = os.environ['ROOT_DIR']
 

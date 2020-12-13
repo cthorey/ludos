@@ -11,7 +11,7 @@ import numpy as np
 import yaml
 from box import Box
 
-from aiplayground.utils import dictionary, s3
+from ludos.utils import dictionary, s3
 
 
 class ModelLoadingError(RuntimeError):

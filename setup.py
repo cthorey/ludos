@@ -1,7 +1,7 @@
 import setuptools
 
 setuptools.setup(
-    name="aiplayground",
+    name="ludos",
     version="0.0.1",
     author="clement thorey",
     author_email="clement.thorey@gmail.com",

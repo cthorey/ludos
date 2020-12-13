@@ -5,10 +5,10 @@ from box import Box
 import torch
 import torch.nn as nn
 from PIL import Image
-from aiplayground.models import common
-from aiplayground.models.glomeruli_segmentation.simple_unet import (config, data,
+from ludos.models import common
+from ludos.models.glomeruli_segmentation.simple_unet import (config, data,
                                                              mosaic)
-from aiplayground.utils import dictionary, s3
+from ludos.utils import dictionary, s3
 
 
 def get_cfg(config_name: str = ""):

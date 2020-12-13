@@ -5,7 +5,7 @@ SHELL := bash
 .DELETE_ON_ERROR:
 .SUFFIXES:
 
-REPO = aiplayground
+REPO = ludos
 DOCKERFILE = ./build/Dockerfile
 DOCKER_BUILD_ARGS = --build-arg CUDAGL_TAG=$(CUDAGL_TAG)
 VERSION = latest

@@ -3,7 +3,7 @@ import time
 
 import fire
 
-from aiplayground.data import round0
+from ludos.data import round0
 
 MAPPING = dict(round0=round0.create_dataset)
 

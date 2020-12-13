@@ -3,7 +3,7 @@ import os
 import pickle
 import shutil
 
-from aiplayground.utils import s3
+from ludos.utils import s3
 
 bucket = s3.S3Bucket('omatai-project')
 ROOT_DIR = os.environ['ROOT_DIR']

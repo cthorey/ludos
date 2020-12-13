@@ -5,7 +5,7 @@ import uuid
 import numpy as np
 from box import Box
 
-from aiplayground.data import common, reader
+from ludos.data import common, reader
 from PIL import Image
 from skimage.color import rgb2hsv
 from tqdm import tqdm

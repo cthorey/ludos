@@ -3,7 +3,7 @@ import os
 import fire
 
 import pytorch_lightning as pl
-from aiplayground.models import experiment
+from ludos.models import experiment
 from pytorch_lightning import callbacks as pl_callbacks
 from pytorch_lightning import trainer
 
@@ -49,7 +49,7 @@ def train(config_name, max_epochs=1, maintainer='clement', gpus=1):
     Example:
         .. code-block::
 
-           from aiplayground.models import common
+           from ludos.models import common
            m = common.load_model(model_task='poses_retrieval',
                                  model_name='rotated_bingham',
                                  expname=[config_name]tX)

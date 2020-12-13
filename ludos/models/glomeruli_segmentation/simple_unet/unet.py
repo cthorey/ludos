@@ -2,7 +2,7 @@ from box import Box
 
 import pytorch_lightning as pl
 import torch
-from aiplayground.data.data import PatchDataset
+from ludos.data.data import PatchDataset
 from monai import data, losses, metrics
 from monai import transforms as tf
 from monai.networks.nets import UNet
