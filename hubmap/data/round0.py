@@ -103,11 +103,9 @@ def process_split(samples, data_name, split, overfit, size, stride, **kwargs):
             except Exception as e:
                 print(e)
                 continue
+            dataset.dump_annotations()
             if overfit and dataset.image_id > 5:
-                break
-        if overfit and dataset.image_id > 5:
-            break
-        dataset.dump_annotations()
+                return
 
 
 def get_split(train):
@@ -128,6 +126,9 @@ def create_dataset(data_name,
     print('-' * 50)
     print('DATASET_NAME: {}'.format(data_name))
     train, validation = get_split(r.train_meta)
+    if overfit:
+        train = train[:1]
+        validation = train[:1]
     dest_folder = common.init_folder(data_name, overwrite=overwrite)
     entry = Box()
     for split, data in [('train', train), ('validation', validation)]:
