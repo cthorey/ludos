@@ -5,7 +5,7 @@ SHELL := bash
 .DELETE_ON_ERROR:
 .SUFFIXES:
 
-REPO = hubmap
+REPO = aiplayground
 DOCKERFILE = ./build/Dockerfile
 DOCKER_BUILD_ARGS = --build-arg CUDAGL_TAG=$(CUDAGL_TAG)
 VERSION = latest
@@ -29,9 +29,9 @@ notebook: ## Launch a notebook
 	$(info *** Launch a serving server on requested port)
 	@docker run --rm -ti \
 		--volume ~/.aws:/root/.aws \
-    --volume ~/.pgpass:/root/.pgpass \
+    --volume ~/.dbdroplet:/root/.pgpass \
     --volume ~/.trains.conf:/root/trains.conf \
-		--volume ~/workdir/competitions/$(REPO):/workdir \
+		--volume ~/workdir/$(REPO):/workdir \
 		--volume ~/workdir/training_config:/workdir/$(REPO)/training_config \
     --volume /mnt/hdd/data:/workdir/data \
     --volume /mnt/hdd/models:/workdir/models \

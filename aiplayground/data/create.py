@@ -3,7 +3,7 @@ import time
 
 import fire
 
-from hubmap.data import round0
+from aiplayground.data import round0
 
 MAPPING = dict(round0=round0.create_dataset)
 
