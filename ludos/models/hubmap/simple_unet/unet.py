@@ -26,7 +26,7 @@ class LightningUNet(pl.LightningModule):
         self.cfg = Box(cfg)
         self.unet = UNet(**self.cfg.model.parameters)
         self.criterion = LOSSES[self.cfg.solver.loss.name](
-            **self.cfg.solver.loss.get('PARAMS', {}))
+            **self.cfg.solver.loss.get('params', {}))
         self.augmentation = None
         if cfg.get('augmentation', ''):
             self.augmentation = augs.augmentations[cfg.get('augmentation', '')]
@@ -34,8 +34,7 @@ class LightningUNet(pl.LightningModule):
             tf.Activations(sigmoid=True),
             tf.AsDiscrete(threshold_values=True)
         ])
-        self.metric = metrics.DiceMetric(include_background=False,
-                                         sigmoid=False)
+        self.metric = metrics.DiceMetric(sigmoid=False, reduction='none')
 
     def setup(self, stage):
         train_ds = PatchDataset(**self.cfg.datasets.train)
@@ -44,9 +43,6 @@ class LightningUNet(pl.LightningModule):
             tf.AddChanneld(keys=["seg"]),
             tf.AsChannelFirstd(keys=["img"]),
             tf.ScaleIntensityd(keys="img"),
-            # tf.RandRotate90d(keys=["img", "seg"],
-            #                  prob=0.5,
-            #                  spatial_axes=[0, 1]),
             tf.ToTensord(keys=["img", "seg"]),
         ])
         self.train_set = data.Dataset(train_ds.sequence,
