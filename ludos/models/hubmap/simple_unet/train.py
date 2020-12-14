@@ -65,7 +65,6 @@ def train(config_name, max_epochs=1, maintainer='clement', gpus=1):
                          **cfg.trainer)
     tr.trains_task = logger
     tr.fit(m.network)
-    return tr, m
     results = tr.test()[0]
     task.upload_checkpoints(checkpoint.best_model_path,
                             expname,

@@ -1,3 +1,16 @@
+tqdm
+transforms3d
+visdom
+pytorch_lightning
+sqlalchemy
+psycopg2
+boto3
+train
+pytorch-lightning-bolts
+monai[all]
+scikit-image
+trains
+optuna
 cython
 fire
 jupyterlab
@@ -10,17 +23,3 @@ torch==1.7.1+cu101
 torchvision==0.8.2+cu101
 torchaudio==0.7.2
 -f https://download.pytorch.org/whl/torch_stable.html
-monai
-tqdm
-transforms3d
-visdom
-pytorch_lightning
-sqlalchemy
-psycopg2
-boto3
-train[s3]
-pytorch-lightning-bolts
-monai[all]
-scikit-image
-trains
-optuna
