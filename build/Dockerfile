@@ -15,6 +15,7 @@ COPY . /workdir
 RUN pip3 install --upgrade pip
 RUN pip3 install -r /workdir/build/requirements.txt
 RUN pip3 install -e /workdir/
+RUN jupyter nbextension enable --py widgetsnbextension
 
 # set up ipython
 COPY build/ipython_config.py /root/.ipython/profile_default/ipython_config.py

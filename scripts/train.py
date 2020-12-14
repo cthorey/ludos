@@ -9,7 +9,8 @@ import fire
 VOLUMES = [
     '~/.aws:/root/.aws:rw', '~/.dbdroplet:/root/.pgpass:rw',
     '~/workdir/training_config:/workdir/training_config:rw',
-    '~/workdir/ludos:/workdir:rw', '~/.trains.conf:/root/trains.conf:rw',
+    '/mnt/hdd/models/cache:/root/.cache:rw', '~/workdir/ludos:/workdir:rw',
+    '~/.trains.conf.droplet:/root/trains.conf:rw',
     '/mnt/hdd/data:/workdir/data:rw', '/mnt/hdd/models:/workdir/models:rw'
 ]
 ROOT_DIR = os.path.join(os.environ['HOME'], 'workdir', 'omatai')

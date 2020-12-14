@@ -4,7 +4,7 @@ import fire
 
 import pytorch_lightning as pl
 from ludos.models import experiment
-from ludos.models.hubmap.evolve_unet import model
+from ludos.models.hubmap.evolve_unet import data, model
 from pytorch_lightning import callbacks as pl_callbacks
 from pytorch_lightning import trainer
 
@@ -66,6 +66,9 @@ def train(config_name, max_epochs=1, maintainer='clement', gpus=1):
     tr.trains_task = logger
     tr.fit(m.network)
     results = tr.test()[0]
+    cfg_to_save = m.network.cfg.to_dict()
+    cfg_to_save['augmentations'] = data.build_transforms(
+        m.network.cfg, is_train=True).get_dict_with_id()
     task.upload_checkpoints(checkpoint.best_model_path,
                             expname,
                             cfg=m.network.cfg.to_dict(),

@@ -30,11 +30,12 @@ notebook: ## Launch a notebook
 	@docker run --rm -ti \
 		--volume ~/.aws:/root/.aws \
     --volume ~/.dbdroplet:/root/.pgpass \
-    --volume ~/.trains.conf:/root/trains.conf \
+    --volume ~/.trains.conf.droplet:/root/trains.conf \
 		--volume ~/workdir/$(REPO):/workdir \
 		--volume ~/workdir/training_config:/workdir/training_config \
     --volume /mnt/hdd/data:/workdir/data \
     --volume /mnt/hdd/models:/workdir/models \
+		--volume /mnt/hdd/models/cache:/root/.cache \
 		--detach \
 		--shm-size "32G" \
 		--publish 8887:8888 \

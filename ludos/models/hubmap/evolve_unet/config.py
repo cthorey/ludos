@@ -22,19 +22,21 @@ C.early_stopping.verbose = True
 C.trainer = Box()
 C.trainer.accumulate_grad_batches = 1
 
-# augmentations
-C.augmentation = ''
+# inputs
+C.inputs = Box()
+C.inputs.size = [256, 256]
+C.inputs.normalize = Box()
+C.inputs.normalize.mean = [0.65459856, 0.48386562, 0.69428385]
+C.inputs.normalize.std = [0.15167958, 0.23584107, 0.13146145]
+C.inputs.normalize.always_apply = True
 
 # models
 C.model = Box()
 C.model.name = 'unet'
 C.model.device = "cuda"
-C.model.parameters = Box(dimensions=2,
-                         in_channels=4,
-                         out_channels=1,
-                         channels=(16, 32, 64, 128, 256),
-                         strides=(2, 2, 2, 2),
-                         num_res_units=2)
+C.model.parameters = Box(encoder_name='se_resnext50_32x4d',
+                         in_channels=3,
+                         encoder_weights='imagenet')
 
 # datasets
 C.datasets = Box()

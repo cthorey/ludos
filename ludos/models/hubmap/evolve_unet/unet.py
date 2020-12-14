@@ -1,9 +1,10 @@
 from box import Box
 
 import pytorch_lightning as pl
+import segmentation_models_pytorch as smp
 import torch
-from ludos.data.hubmap.data import PatchDataset
-from monai import data, losses, metrics
+from ludos.models.hubmap.evolve_unet import data
+from monai import losses, metrics
 from monai import transforms as tf
 from monai.networks.nets import UNet
 from torch import optim
@@ -24,7 +25,7 @@ class LightningUNet(pl.LightningModule):
         self.batch_size = self.cfg.solver.ims_per_batch
         self.learning_rate = self.cfg.solver.default_lr
         self.cfg = Box(cfg)
-        self.unet = UNet(**self.cfg.model.parameters)
+        self.unet = smp.Unet(**self.cfg.model.parameters)
         self.criterion = LOSSES[self.cfg.solver.loss.name](
             **self.cfg.solver.loss.get('params', {}))
         self.augmentation = None
@@ -37,28 +38,15 @@ class LightningUNet(pl.LightningModule):
         self.metric = metrics.DiceMetric(sigmoid=False, reduction='none')
 
     def setup(self, stage):
-        train_ds = PatchDataset(**self.cfg.datasets.train)
-        train_transforms = tf.Compose([
-            tf.LoadImaged(keys=["img", "seg"]),
-            tf.AddChanneld(keys=["seg"]),
-            tf.AsChannelFirstd(keys=["img"]),
-            tf.ScaleIntensityd(keys="img"),
-            tf.ToTensord(keys=["img", "seg"]),
-        ])
-        self.train_set = data.Dataset(train_ds.sequence,
-                                      transform=train_transforms)
+        tf = data.build_transforms(self.cfg, is_train=True)
+        self.train_set = data.TrainingDataset(transforms=tf,
+                                              **self.cfg.datasets.train)
 
-        val_ds = PatchDataset(**self.cfg.datasets.test)
-        val_transforms = tf.Compose([
-            tf.LoadImaged(keys=["img", "seg"]),
-            tf.AddChanneld(keys=["seg"]),
-            tf.AsChannelFirstd(keys=["img"]),
-            tf.ScaleIntensityd(keys="img"),
-            tf.ToTensord(keys=["img", "seg"]),
-        ])
-        self.validation_set = data.Dataset(val_ds.sequence,
-                                           transform=val_transforms)
-        self.test_set = data.Dataset(val_ds.sequence, transform=val_transforms)
+        tf = data.build_transforms(self.cfg, is_train=False)
+        self.validation_set = data.TrainingDataset(transforms=tf,
+                                                   **self.cfg.datasets.test)
+        self.test_set = data.TrainingDataset(transforms=tf,
+                                             **self.cfg.datasets.test)
 
     def train_dataloader(self):
         return DataLoader(self.train_set,
@@ -81,7 +69,7 @@ class LightningUNet(pl.LightningModule):
         return self.unet(x)
 
     def training_step(self, batch, batch_idx):
-        images, targets = batch['img'], batch['seg']
+        images, targets = batch
         preds = self(images)
         loss = self.criterion(preds, targets)
         self.log('train_loss',
@@ -93,7 +81,7 @@ class LightningUNet(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        images, targets = batch['img'], batch['seg']
+        images, targets = batch
         logits = self(images)
         loss = self.criterion(logits, targets)
         self.log('val_loss', loss, on_epoch=True, prog_bar=True, logger=True)

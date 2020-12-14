@@ -1,5 +1,6 @@
 tqdm
 albumentations
+ipywidgets
 segmentation-models-pytorch
 transforms3d
 visdom
