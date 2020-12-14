@@ -12,6 +12,7 @@ RUN apt update && \
 
 # install our library
 COPY . /workdir
+RUN pip3 install --upgrade pip
 RUN pip3 install -r /workdir/build/requirements.txt
 RUN pip3 install -e /workdir/
 

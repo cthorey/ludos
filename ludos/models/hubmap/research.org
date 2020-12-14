@@ -1,0 +1,26 @@
+#-*- mode: org -*-
+
+* Hubmap competition
+
+** pretrained_unet
+
+  
+
+** simple_unet
+
+   Here we use the monai library to train the model.
+   I trained only one model - but it did not work very well.
+
+   name: simple_unet/round0t2 
+   Final val_dice: 0.24
+
+   There are two problems
+
+   1. Dataset is not great - same nb of images in both
+   2. No pretrained. 
+   
+
+
+  
+
+  
