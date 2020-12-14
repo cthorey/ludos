@@ -16,10 +16,9 @@ from box import Box
 import optuna
 import pandas as pd
 import torch
-from orm.dionysos import VegaiModelzoo, session_scope
-from trains import Task
 from ludos.models import common
-from ludos.utils import dictionary, s3
+from ludos.utils import dictionary, orm, s3
+from trains import Task
 
 ROOT_DIR = os.environ['ROOT_DIR']
 
@@ -48,16 +47,16 @@ def retrieve_summary(model_task='.*',
     """
     Retrieve previously computed summary
     """
-    with session_scope() as sess:
-        query = sess.query(VegaiModelzoo).\
-                filter(VegaiModelzoo.model_name.op('~')(model_name)).\
-                filter(VegaiModelzoo.dataset_name.op('~')(dataset_name)).\
-                filter(VegaiModelzoo.model_task.op('~')(model_task)).\
-                filter(VegaiModelzoo.score_name.op('~')(score_name)).\
-                filter(VegaiModelzoo.split.op('~')(split)).\
-                filter(VegaiModelzoo.expname.op('~')(expname))
+    with orm.session_scope() as sess:
+        query = sess.query(orm.Modelzoo).\
+                filter(orm.Modelzoo.model_name.op('~')(model_name)).\
+                filter(orm.Modelzoo.dataset_name.op('~')(dataset_name)).\
+                filter(orm.Modelzoo.model_task.op('~')(model_task)).\
+                filter(orm.Modelzoo.score_name.op('~')(score_name)).\
+                filter(orm.Modelzoo.split.op('~')(split)).\
+                filter(orm.Modelzoo.expname.op('~')(expname))
         if model_id is not None:
-            query = query.filter(VegaiModelzoo.model_id == model_id)
+            query = query.filter(orm.Modelzoo.model_id == model_id)
         records = query.all()
         entries = []
         for record in records:
@@ -102,11 +101,11 @@ class Experiment(object):
     def next_trial_name(self):
         """Returns the next trial name
         """
-        with session_scope() as sess:
-            results = sess.query(VegaiModelzoo).filter(
-                VegaiModelzoo.model_task == self.model_task).filter(
-                    VegaiModelzoo.model_name == self.model_name).filter(
-                        VegaiModelzoo.expname.op('~')("{}.*".format(
+        with orm.session_scope() as sess:
+            results = sess.query(orm.Modelzoo).filter(
+                orm.Modelzoo.model_task == self.model_task).filter(
+                    orm.Modelzoo.model_name == self.model_name).filter(
+                        orm.Modelzoo.expname.op('~')("{}.*".format(
                             self.config_name))).all()
             expnames = [r.expname for r in results]
             if not expnames:
@@ -121,12 +120,12 @@ class Experiment(object):
         """Log the existence of this task to the
         modelzoo.
         """
-        with session_scope() as sess:
+        with orm.session_scope() as sess:
             entry = dict(model_task=self.model_task,
                          model_name=self.model_name,
                          expname=expname)
             model_id = self.get_model_id(expname)
-            entry = VegaiModelzoo(
+            entry = orm.Modelzoo(
                 model_id=model_id,
                 status="started",
                 created_on=datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -136,13 +135,13 @@ class Experiment(object):
     def update_task(self, expname, **kwargs):
         """Update the modelzoo record for this task.
         """
-        with session_scope() as sess:
+        with orm.session_scope() as sess:
             entry = dict(model_task=self.model_task,
                          model_name=self.model_name,
                          expname=expname)
             model_id = hashlib.sha1(json.dumps(entry).encode()).hexdigest()
-            entry = sess.query(VegaiModelzoo).filter(
-                VegaiModelzoo.model_id == model_id).all()[0]
+            entry = sess.query(orm.Modelzoo).filter(
+                orm.Modelzoo.model_id == model_id).all()[0]
             for key, value in kwargs.items():
                 setattr(entry, key, value)
 

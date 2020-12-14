@@ -32,7 +32,7 @@ notebook: ## Launch a notebook
     --volume ~/.dbdroplet:/root/.pgpass \
     --volume ~/.trains.conf:/root/trains.conf \
 		--volume ~/workdir/$(REPO):/workdir \
-		--volume ~/workdir/training_config:/workdir/$(REPO)/training_config \
+		--volume ~/workdir/training_config:/workdir/training_config \
     --volume /mnt/hdd/data:/workdir/data \
     --volume /mnt/hdd/models:/workdir/models \
 		--detach \

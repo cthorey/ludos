@@ -4,17 +4,16 @@ from box import Box
 
 import torch
 import torch.nn as nn
-from PIL import Image
 from ludos.models import common
-from ludos.models.glomeruli_segmentation.simple_unet import (config, data,
-                                                             mosaic)
+from ludos.models.hubmap.simple_unet import architectures, config
 from ludos.utils import dictionary, s3
+from PIL import Image
 
 
 def get_cfg(config_name: str = ""):
     default_cfg = config.get().to_dict()
     flatten_default_cfg = dictionary.flatten(default_cfg)
-    cfg = common.get_cfg(model_task='glomeruli_segmentation',
+    cfg = common.get_cfg(model_task='hubmap',
                          model_name='simple_unet',
                          config_name=config_name)
     flatten_cfg = dictionary.flatten(cfg.to_dict())
@@ -29,7 +28,7 @@ class Model(common.BaseModel):
     def __init__(self,
                  model_type='models',
                  model_name='simple_unet',
-                 model_task='glomeruli_segmentation',
+                 model_task='hubmap',
                  model_description="",
                  expname=None):
         super(Model, self).__init__(model_type=model_type,
@@ -41,7 +40,8 @@ class Model(common.BaseModel):
         self.build_network(cfg, expname=expname)
 
     def build_network(self, cfg, expname=None):
-        self.network = mosaic.MosaicNetwork(cfg, is_train=expname is None)
+        arch = cfg['model']['name']
+        self.network = architectures.ARCHS[arch](cfg, is_train=expname is None)
         if self.expname is not None:
             checkpoint_path = os.path.join(
                 self.model_folder, '{}_weights.pth'.format(self.expname))

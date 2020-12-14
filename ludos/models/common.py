@@ -33,7 +33,7 @@ def get_config_path(model_task, model_name, config_name):
 def get_cfg(model_task, model_name, config_name):
     path = get_config_path(model_task, model_name, config_name)
     if not os.path.isfile(path):
-        raise IOError
+        raise IOError('{} not found'.format(path))
     with open(path, 'r') as f:
         cfg = Box.from_yaml(f)
     return cfg

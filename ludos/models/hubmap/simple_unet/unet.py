@@ -2,7 +2,7 @@ from box import Box
 
 import pytorch_lightning as pl
 import torch
-from ludos.data.data import PatchDataset
+from ludos.data.hubmap.data import PatchDataset
 from monai import data, losses, metrics
 from monai import transforms as tf
 from monai.networks.nets import UNet
@@ -21,38 +21,38 @@ class LightningUNet(pl.LightningModule):
             raise ValueError('Pass a dict instead')
         self.save_hyperparameters('cfg', 'is_train')
         self.cfg = Box(cfg)
-        self.batch_size = self.cfg.SOLVER.IMS_PER_BATCH
-        self.learning_rate = self.cfg.SOLVER.DEFAULT_LR
+        self.batch_size = self.cfg.solver.ims_per_batch
+        self.learning_rate = self.cfg.solver.default_lr
         self.cfg = Box(cfg)
-        self.unet = UNet(**self.cfg.MODEL.UNET)
-        self.criterion = LOSSES[self.cfg.SOLVER.LOSS.NAME](
-            **self.cfg.SOLVER.LOSS.get('PARAMS', {}))
+        self.unet = UNet(**self.cfg.model.parameters)
+        self.criterion = LOSSES[self.cfg.solver.loss.name](
+            **self.cfg.solver.loss.get('PARAMS', {}))
         self.augmentation = None
-        if cfg.get('AUGMENTATION', ''):
-            self.augmentation = augs.AUGMENTATIONS[cfg.get('AUGMENTATION', '')]
+        if cfg.get('augmentation', ''):
+            self.augmentation = augs.augmentations[cfg.get('augmentation', '')]
         self.postprocessing = tf.Compose([
             tf.Activations(sigmoid=True),
             tf.AsDiscrete(threshold_values=True)
         ])
-        self.metric = metrics.DiceMetric(include_background=True,
-                                         reduction="none")
+        self.metric = metrics.DiceMetric(include_background=False,
+                                         sigmoid=False)
 
     def setup(self, stage):
-        train_ds = PatchDataset(**self.cfg.DATASETS.TRAIN)
+        train_ds = PatchDataset(**self.cfg.datasets.train)
         train_transforms = tf.Compose([
             tf.LoadImaged(keys=["img", "seg"]),
             tf.AddChanneld(keys=["seg"]),
             tf.AsChannelFirstd(keys=["img"]),
             tf.ScaleIntensityd(keys="img"),
-            tf.RandRotate90d(keys=["img", "seg"],
-                             prob=0.5,
-                             spatial_axes=[0, 1]),
+            # tf.RandRotate90d(keys=["img", "seg"],
+            #                  prob=0.5,
+            #                  spatial_axes=[0, 1]),
             tf.ToTensord(keys=["img", "seg"]),
         ])
         self.train_set = data.Dataset(train_ds.sequence,
                                       transform=train_transforms)
 
-        val_ds = PatchDataset(**self.cfg.DATASETS.TEST)
+        val_ds = PatchDataset(**self.cfg.datasets.test)
         val_transforms = tf.Compose([
             tf.LoadImaged(keys=["img", "seg"]),
             tf.AddChanneld(keys=["seg"]),
@@ -69,17 +69,17 @@ class LightningUNet(pl.LightningModule):
                           batch_size=self.batch_size,
                           shuffle=True,
                           sampler=None,
-                          num_workers=self.cfg.DATALOADER.NUM_WORKERS)
+                          num_workers=self.cfg.dataloader.num_workers)
 
     def val_dataloader(self):
         return DataLoader(self.validation_set,
                           batch_size=self.batch_size,
-                          num_workers=self.cfg.DATALOADER.NUM_WORKERS)
+                          num_workers=self.cfg.dataloader.num_workers)
 
     def test_dataloader(self):
         return DataLoader(self.test_set,
                           batch_size=self.batch_size,
-                          num_workers=self.cfg.DATALOADER.NUM_WORKERS)
+                          num_workers=self.cfg.dataloader.num_workers)
 
     def forward(self, x):
         return self.unet(x)
@@ -107,7 +107,7 @@ class LightningUNet(pl.LightningModule):
 
     def validation_epoch_end(self, outputs):
         logs = dict()
-        logs['mean_dice'] = torch.cat([r['dices'] for r in outputs]).mean()
+        logs['val_dice'] = torch.cat([r['dices'] for r in outputs]).mean()
         logs['val_loss'] = torch.stack([x['val_loss'] for x in outputs]).mean()
         self.log_dict(logs, prog_bar=True, logger=True)
 
@@ -122,16 +122,16 @@ class LightningUNet(pl.LightningModule):
         Return whatever optimizers and learning rate schedulers you want here.
         At least one optimizer is required.
         """
-        params = self.cfg.SOLVER.OPTIMIZER.get('PARAMS', {})
+        params = self.cfg.solver.optimizer.get('params', {})
         params['lr'] = self.learning_rate
-        optimizer = OPTIMIZER[self.cfg.SOLVER.OPTIMIZER.NAME](
+        optimizer = OPTIMIZER[self.cfg.solver.optimizer.name](
             self.parameters(), **dict(params))
-        params = self.cfg.SOLVER.SCHEDULER.get('PARAMS', {})
-        if self.cfg.SOLVER.SCHEDULER.NAME == 'OneCycleLR':
+        params = self.cfg.solver.scheduler.get('params', {})
+        if self.cfg.solver.scheduler.name == 'OneCycleLR':
             params['max_lr'] = self.learning_rate
-        scheduler_lr = SCHEDULER[self.cfg.SOLVER.SCHEDULER.NAME](
+        scheduler_lr = SCHEDULER[self.cfg.solver.scheduler.name](
             optimizer, **dict(params))
-        scheduler = self.cfg.SOLVER.SCHEDULER_META
+        scheduler = self.cfg.solver.scheduler_meta
         scheduler['scheduler'] = scheduler_lr
 
         return [optimizer], [scheduler]
