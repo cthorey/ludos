@@ -62,6 +62,7 @@ C.solver.loss.params = Box()
 C.solver.loss.params.dice = 0.5
 C.solver.loss.params.bce = 1.0
 C.solver.loss.params.lovasz = 0.0
+C.solver.loss.params.soft_bce = False
 
 C.solver.optimizer = Box()
 C.solver.optimizer.name = "Adam"
