@@ -298,9 +298,11 @@ class Optuna(object):
         params = dict()
         parameter_space = self.exploration.parameter_space.to_dict()
         for key, param in parameter_space.items():
-            params[param['name']] = getattr(trial,
-                                            param['method'])(param['name'],
-                                                             *param['values'])
+            v = param['values']
+            n = param['name']
+            if param['method'] == 'suggest_categorical':
+                v = [param['values']]
+            params[param['name']] = getattr(trial, param['method'])(n, *v)
         return params
 
     def optimize(self, trial):

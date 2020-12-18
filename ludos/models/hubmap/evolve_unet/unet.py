@@ -94,7 +94,7 @@ class FPN(nn.Module):
 
 
 class SubPixelNetWithFPN(nn.Module):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__()
         self.enc0 = EncoderBlock(in_channels=3, out_channels=64)
         self.m0 = nn.MaxPool2d(kernel_size=(2, 2))

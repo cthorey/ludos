@@ -78,6 +78,7 @@ def train(config_name, max_epochs=1, maintainer='clement', gpus=1):
              score_name="dice",
              score=results["val_dice"],
              split="validation")
+    return results["val_dice"]
 
 
 def explore(name, reset=False):
@@ -85,6 +86,7 @@ def explore(name, reset=False):
                             model_name='evolve_unet',
                             exploration_name=name,
                             training_method=train,
+                            direction='maximize',
                             reset=False)
     exp.run()
 
