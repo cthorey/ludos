@@ -58,8 +58,9 @@ C.dataloader.num_workers = 4
 C.solver = Box()
 
 C.solver.loss = Box()
-C.solver.loss.name = "DiceLoss"
-C.solver.loss.params = {}
+C.solver.loss.params = Box()
+C.solver.loss.params.w_dice = 0.5
+C.solver.loss.params.w_bce = 1
 
 C.solver.optimizer = Box()
 C.solver.optimizer.name = "Adam"

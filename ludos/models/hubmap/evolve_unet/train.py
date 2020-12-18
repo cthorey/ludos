@@ -80,12 +80,13 @@ def train(config_name, max_epochs=1, maintainer='clement', gpus=1):
              split="validation")
 
 
-def explore(name):
-    advisor = experiment.Bender(model_task='poses_retrieval',
-                                model_name='rotated_bingham',
-                                exploration_name=name)
-    config_name = advisor.suggest()
-    train(config_name, **advisor.exploration.common)
+def explore(name, reset=False):
+    exp = experiment.Optuna(model_task='hubmap',
+                            model_name='evolve_unet',
+                            exploration_name=name,
+                            training_method=train,
+                            reset=False)
+    exp.run()
 
 
 if __name__ == '__main__':

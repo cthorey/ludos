@@ -3,7 +3,7 @@ from box import Box
 import pytorch_lightning as pl
 import segmentation_models_pytorch as smp
 import torch
-from ludos.models.hubmap.evolve_unet import architectures, data
+from ludos.models.hubmap.evolve_unet import architectures, data, losses
 from monai import transforms as tf
 from monai.networks.nets import UNet
 from torch import optim
@@ -23,7 +23,7 @@ class LightningUNet(pl.LightningModule):
         self.batch_size = self.cfg.solver.ims_per_batch
         self.learning_rate = self.cfg.solver.default_lr
         self.cfg = Box(cfg)
-        self.criterion = smp.utils.losses.DiceLoss(activation="sigmoid")
+        self.criterion = losses.Loss(**self.cfg.solver.loss.params)
         self.postprocessing = tf.Compose([
             tf.Activations(sigmoid=True),
             tf.AsDiscrete(threshold_values=True)

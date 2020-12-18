@@ -97,7 +97,8 @@ def explore(model_task,
             name,
             image_tag='latest',
             devices=0,
-            detach=True):
+            detach=True,
+            dry_run=False):
     sys.path.append('./scripts')
     import docker_utils
 
@@ -106,6 +107,9 @@ def explore(model_task,
             model_task, model_name),
         fn='explore',
         name=name)
+    if dry_run:
+        print(cmd)
+        cmd = 'sleep infinity'
     envs = docker_utils.create_envs(devices)
     volumes = docker_utils.create_volumes(VOLUMES)
     name = '{}_{}'.format(name, uuid.uuid4().hex)

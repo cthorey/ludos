@@ -224,7 +224,7 @@ class BasicUnet(nn.Module):
         f1 = self.m1(e1)  # 128x64x64
         e2 = self.enc2(f1)  # 256x64x64
         f2 = self.m2(e2)  # 256x32x32
-        bottom = self.aspp(f2)  #512x32x32
+        bottom = self.bottom(f2)  #512x32x32
         d2 = self.dec2(bottom, e2)
         d1 = self.dec1(d2, e1)
         d0 = self.dec0(d1, e0)
