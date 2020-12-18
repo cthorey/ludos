@@ -33,7 +33,7 @@ class LightningUNet(pl.LightningModule):
             'iou': smp.utils.metrics.IoU()
         }
         self.net = architectures.build(self.cfg.model.name,
-                                       **self.cfg.model.parameters)
+                                       **self.cfg.model.get('parameters', {}))
 
     def setup(self, stage):
         tf = data.build_transforms(self.cfg, is_train=True)

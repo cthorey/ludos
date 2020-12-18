@@ -36,11 +36,9 @@ C.augmentation.enable = True
 
 # models
 C.model = Box()
-C.model.name = 'unet'
+C.model.name = 'basicunet'
 C.model.device = "cuda"
-C.model.parameters = Box(encoder_name='se_resnext50_32x4d',
-                         in_channels=3,
-                         encoder_weights='imagenet')
+C.model.parameters = Box()
 
 # datasets
 C.datasets = Box()
