@@ -1,8 +1,12 @@
 import segmentation_models_pytorch as smp
 import torch
-from segmentation_models_pytorch.base.modules import Activation
 from segmentation_models_pytorch.utils import functional
 from torch.nn import functional as F
+
+try:
+    from segmentation_models_pytorch.base.modules import Activation
+except:
+    from segmentation_models_pytorch.utils.base import Activation
 
 
 class Loss(smp.utils.base.Loss):
