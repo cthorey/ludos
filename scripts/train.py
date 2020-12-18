@@ -18,28 +18,30 @@ docker_client = docker.from_env()
 IMAGE = 'ludos:{}'
 
 
-def create_dataset(data_name,
-                   data_type='round0',
-                   overfit=True,
-                   size=1024,
-                   stride=0.5,
+def create_dataset(model_task,
+                   dataset_type,
+                   data_name='auto',
+                   overwrite=True,
+                   overfit=False,
                    image_tag='latest',
-                   dry_run=False):
+                   dry_run=False,
+                   **kwargs):
     sys.path.append('./scripts')
     import docker_utils
-    cmd = docker_utils.parse_cmd(script="/workdir/hubmap/data/constructor.py",
+    cmd = docker_utils.parse_cmd(script="/workdir/ludos/data/constructor.py",
                                  fn="create_dataset",
+                                 model_task=model_task,
+                                 dataset_type=dataset_type,
                                  data_name=data_name,
-                                 data_type=data_type,
+                                 overwrite=overwrite,
                                  overfit=overfit,
-                                 size=size,
-                                 stride=stride)
+                                 **kwargs)
     if dry_run:
         print(cmd)
         cmd = "sleep infinity"
     envs = docker_utils.create_envs()
     volumes = docker_utils.create_volumes(VOLUMES)
-    name = '{}_{}'.format(data_name, uuid.uuid4().hex)
+    name = '{}_{}'.format(model_task, uuid.uuid4().hex)
     docker_client.containers.run(image=IMAGE.format(image_tag),
                                  name=name,
                                  runtime='nvidia',

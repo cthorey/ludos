@@ -7,6 +7,7 @@ from box import Box
 
 from ludos.data import common
 from ludos.data.hubmap import reader
+from ludos.utils import orm
 from PIL import Image
 from skimage.color import rgb2hsv
 from tqdm import tqdm
@@ -114,13 +115,31 @@ def get_split(train):
     return ids[:-2], ids[-2:]
 
 
-def create_dataset(data_name,
+def get_dataset_name():
+    with orm.session_scope() as sess:
+        names = sess.query(orm.Dataset.dataset_name).all()
+        names = [
+            n.dataset_name for n in names
+            if bool(re.match('hubmapd.*(?<!overfit)$', n.dataset_name))
+        ]
+    i = 0
+    while True:
+        proposal = 'hubmapd{}'.format(i)
+        if proposal not in names:
+            break
+        i += 1
+    return proposal
+
+
+def create_dataset(data_name='auto',
                    overwrite=False,
                    overfit=False,
                    maintainer='clement',
                    size=1024,
                    stride=0.5,
                    **kwargs):
+    if data_name == 'auto':
+        data_name = get_dataset_name()
     if overfit:
         data_name = '{}_overfit'.format(data_name)
     r = reader.Reader()

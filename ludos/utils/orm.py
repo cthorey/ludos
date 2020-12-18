@@ -33,6 +33,21 @@ def session_scope():
         session.close()
 
 
+class Dataset(Base):
+    __tablename__ = 'dataset'
+    dataset_id = Column(Integer, primary_key=True)
+    dataset_cat = Column(Text, nullable=False)
+    dataset_name = Column(Text, nullable=False)
+    created_on = Column(DateTime, nullable=False)
+    train_key = Column(Text, nullable=False)
+    validation_key = Column(Text, nullable=False)
+    maintainer = Column(Text, nullable=False)
+    nb_training_samples = Column(Integer, nullable=False)
+    nb_validation_samples = Column(Integer, nullable=False)
+    description = Column(Text, nullable=False)
+    nb_samples = Column(Integer, nullable=False)
+
+
 class Modelzoo(Base):
     __tablename__ = 'modelzoo'
     model_id = Column(Text, primary_key=True)

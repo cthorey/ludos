@@ -9,8 +9,6 @@ def create_dataset(model_task, dataset_type, data_name, overwrite, overfit,
     try:
         module = 'ludos.data.{}.{}'.format(model_task, dataset_type)
         print('Loading from module: {}'.format(module))
-        # wait for ros to setup
-        time.sleep(2)
         module = importlib.import_module(module)
         print('Creating dataset')
         module.create_dataset(data_name=data_name,
