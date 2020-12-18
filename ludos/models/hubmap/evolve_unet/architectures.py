@@ -5,6 +5,7 @@ ARCHS = {
     'smpunet': smp.Unet,
     'basicunet': unet.BasicUnet,
     'subpixelunet': unet.SubPixelNet,
+    'subpixelunetwithFPN': unet.SubPixelNetWithFPN,
     'asppunet': unet.ASPPUnet
 }
 
