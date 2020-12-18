@@ -1,5 +1,6 @@
 import segmentation_models_pytorch as smp
 import torch
+from segmentation_models_pytorch.base.modules import Activation
 from segmentation_models_pytorch.utils import functional
 from torch.nn import functional as F
 
@@ -7,7 +8,7 @@ from torch.nn import functional as F
 class Loss(smp.utils.base.Loss):
     def __init__(self, w_bce=1, w_dice=0.5, activation=None, **kwargs):
         super().__init__(**kwargs)
-        self.activation = smp.utils.base.Activation(activation)
+        self.activation = Activation(activation)
         self.w_bce = torch.tensor(w_bce).float()
         self.w_dice = torch.tensor(w_dice).float()
 

@@ -101,9 +101,8 @@ def explore(model_task,
             dry_run=False):
     sys.path.append('./scripts')
     import docker_utils
-
     cmd = docker_utils.parse_cmd(
-        script="/packages/hubmap/models/{}/{}/train.py".format(
+        script="/workdir/ludos/models/{}/{}/train.py".format(
             model_task, model_name),
         fn='explore',
         name=name)
