@@ -4,7 +4,6 @@ import pytorch_lightning as pl
 import segmentation_models_pytorch as smp
 import torch
 from ludos.models.hubmap.evolve_unet import data
-from monai import losses, metrics
 from monai import transforms as tf
 from monai.networks.nets import UNet
 from torch import optim
@@ -12,7 +11,6 @@ from torch.utils.data import DataLoader
 
 OPTIMIZER = dict(Adam=optim.Adam, RMSprop=optim.RMSprop)
 SCHEDULER = dict(OneCycleLR=optim.lr_scheduler.OneCycleLR)
-LOSSES = dict(DiceLoss=losses.DiceLoss)
 
 
 class LightningUNet(pl.LightningModule):
@@ -26,16 +24,15 @@ class LightningUNet(pl.LightningModule):
         self.learning_rate = self.cfg.solver.default_lr
         self.cfg = Box(cfg)
         self.unet = smp.Unet(**self.cfg.model.parameters)
-        self.criterion = LOSSES[self.cfg.solver.loss.name](
-            **self.cfg.solver.loss.get('params', {}))
-        self.augmentation = None
-        if cfg.get('augmentation', ''):
-            self.augmentation = augs.augmentations[cfg.get('augmentation', '')]
+        self.criterion = smp.utils.losses.DiceLoss(activation="sigmoid")
         self.postprocessing = tf.Compose([
             tf.Activations(sigmoid=True),
             tf.AsDiscrete(threshold_values=True)
         ])
-        self.metric = metrics.DiceMetric(sigmoid=False, reduction='none')
+        self.metrics = {
+            'dice': smp.utils.metrics.Fscore(),
+            'iou': smp.utils.metrics.IoU()
+        }
 
     def setup(self, stage):
         tf = data.build_transforms(self.cfg, is_train=True)
@@ -86,13 +83,17 @@ class LightningUNet(pl.LightningModule):
         loss = self.criterion(logits, targets)
         self.log('val_loss', loss, on_epoch=True, prog_bar=True, logger=True)
         predictions = self.postprocessing(logits)
-        dices = self.metric(predictions, targets)
-        return {'dices': dices, 'val_loss': loss}
+        metrics = {'loss': torch.tensor([loss])}
+        for key, metric in self.metrics.items():
+            metrics[key] = torch.tensor([metric(predictions, targets)])
+        return metrics
 
     def validation_epoch_end(self, outputs):
         logs = dict()
-        logs['val_dice'] = torch.cat([r['dices'] for r in outputs]).mean()
-        logs['val_loss'] = torch.stack([x['val_loss'] for x in outputs]).mean()
+        metrics = outputs[0].keys()
+        for metric in metrics:
+            arr = [r[metric] for r in outputs]
+            logs['val_{}'.format(metric)] = torch.cat(arr).mean()
         self.log_dict(logs, prog_bar=True, logger=True)
 
     def test_step(self, batch, batch_idx):

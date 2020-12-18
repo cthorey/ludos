@@ -2,12 +2,21 @@
 
 * Hubmap competition
 
-** pretrained_unet
+ 
+** Ideas
 
-  
+   - use detectron2
+     
+** Previous competition
+   
+Pneumotorax challenge
 
+- resnet34/50 and seresnext50
+- Combo loss (BCE,dice,focal) with 2,1,2
+- CV during training
+ 
+          
 ** simple_unet
-
    Here we use the monai library to train the model.
    I trained only one model - but it did not work very well.
 
@@ -22,5 +31,8 @@
 
 
   
+   
+
 
   
+

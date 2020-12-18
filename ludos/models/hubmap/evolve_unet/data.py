@@ -6,6 +6,7 @@ import numpy as np
 import albumentations as albu
 from albumentations.pytorch import ToTensorV2
 from ludos.data.hubmap import data
+from ludos.utils import viz
 from PIL import Image
 from torchvision import transforms as T
 
@@ -14,7 +15,7 @@ ROOT_DIR = os.environ['ROOT_DIR']
 
 def build_transforms(cfg, is_train, debug=False):
     to_compose = [albu.Resize(*cfg.inputs.size)]
-    if is_train:
+    if is_train and cfg.augmentation.enable:
         to_compose.extend([
             albu.HorizontalFlip(p=0.5),
             albu.VerticalFlip(p=0.5),
@@ -65,6 +66,11 @@ class TrainingDataset(data.PatchDataset):
     def __init__(self, data_name, split, transforms):
         super(TrainingDataset, self).__init__(data_name, split)
         self.transforms = transforms
+
+    def display(self, idx, alpha=1):
+        img, seg = self[idx]
+        img = viz.apply_masks(img, seg, alpha=alpha)
+        return Image.fromarray(img.astype('uint8'))
 
     def __getitem__(self, idx):
         info = self.dataset.data[idx]

@@ -30,6 +30,10 @@ C.inputs.normalize.mean = [0.65459856, 0.48386562, 0.69428385]
 C.inputs.normalize.std = [0.15167958, 0.23584107, 0.13146145]
 C.inputs.normalize.always_apply = True
 
+# augmentationn
+C.augmentation = Box()
+C.augmentation.enable = True
+
 # models
 C.model = Box()
 C.model.name = 'unet'
@@ -57,7 +61,7 @@ C.solver = Box()
 
 C.solver.loss = Box()
 C.solver.loss.name = "DiceLoss"
-C.solver.loss.params = {"sigmoid": True}
+C.solver.loss.params = {}
 
 C.solver.optimizer = Box()
 C.solver.optimizer.name = "Adam"

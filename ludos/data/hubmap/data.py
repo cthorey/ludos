@@ -4,23 +4,12 @@ import os
 import numpy as np
 from box import Box
 
+from ludos.utils import viz
 from PIL import Image
 from tqdm import tqdm
 
 ROOT_DIR = os.environ['ROOT_DIR']
 DATA_PATH = os.path.join(ROOT_DIR, 'data', 'interim')
-
-
-def apply_masks(image, mask, alpha=0.5):
-    """
-    Blend the mask within the images - #vectorize
-    """
-    image = image[:, :, :3]
-    m = np.stack([mask[:, :, 0]] * 3).transpose(1, 2, 0) * np.array(
-        [0, 0, 153]) / 255.
-    mask_img = (m * alpha + image * (1 - alpha)).astype('uint8')
-    img = mask_img * (m != 0) + image * (m == 0)
-    return img
 
 
 class PatchDataset(object):
@@ -64,5 +53,6 @@ class PatchDataset(object):
 
     def display(self, idx, alpha=1):
         img, seg = self[idx]
-        img = apply_masks(np.array(img), np.array(seg), alpha=alpha)
+        mask = np.expand_dims(np.array(seg), -1)
+        img = viz.apply_masks(np.array(img), mask, alpha=alpha)
         return Image.fromarray(img.astype('uint8'))

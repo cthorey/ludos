@@ -5,7 +5,8 @@ import uuid
 import numpy as np
 from box import Box
 
-from ludos.data import common, reader
+from ludos.data import common
+from ludos.data.hubmap import reader
 from PIL import Image
 from skimage.color import rgb2hsv
 from tqdm import tqdm
@@ -28,7 +29,6 @@ def generate_patches(img, mask, size=256, stride=0.5):
             continue
         mask_patch = mask[ymin:ymax, xmin:xmax]
         yield img_patch, mask_patch
-    return centers
 
 
 class DatasetConstructor(object):
@@ -91,7 +91,8 @@ def process_split(samples, data_name, split, overfit, size, stride, **kwargs):
     for idx, sample_id in enumerate(samples):
         print('Processing {}/{}'.format(idx, len(samples)))
         img = r.get_image(sample_id)
-        mask = r.get_segmentation(sample_id, debug=overfit)
+        mask = r.get_segmentation_from_rle(sample_id,
+                                           (img.shape[1], img.shape[0]))
         patch_generator = generate_patches(img, mask, size=size, stride=stride)
         for img_patch, mask_patch in patch_generator:
             if not is_valid_patch(img_patch):
@@ -110,7 +111,7 @@ def process_split(samples, data_name, split, overfit, size, stride, **kwargs):
 
 def get_split(train):
     ids = train.index.to_list()
-    return ids[:-3], ids[-3:]
+    return ids[:-2], ids[-2:]
 
 
 def create_dataset(data_name,

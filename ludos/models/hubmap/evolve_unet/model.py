@@ -1,11 +1,12 @@
 import os
 
+import numpy as np
 from box import Box
 
 import torch
 import torch.nn as nn
 from ludos.models import common
-from ludos.models.hubmap.evolve_unet import architectures, config
+from ludos.models.hubmap.evolve_unet import architectures, config, data
 from ludos.utils import dictionary, s3
 from PIL import Image
 
@@ -50,48 +51,25 @@ class Model(common.BaseModel):
             print('Reloading from {}'.format(checkpoint_path))
             self.network = self.network.load_from_checkpoint(checkpoint_path,
                                                              is_train=False)
-            self.label2id = torch.load(checkpoint_path)['extra']['label2id']
-            self.id2label = {v: k for k, v in self.label2id.items()}
+            self.network.eval()
 
     def prepare_inputs(self, images, device):
-        transforms = data.build_transforms(self.network.cfg,
-                                           stage='validation')
-        inputs = dict.fromkeys(images)
-        for key in images:
-            imgs = images[key]
-            if key not in ['image', "footprint"]:
-                raise ValueError("Wrong key fellow")
-            imgs = [imgs] if not isinstance(imgs, list) else imgs
-            inputs[key] = torch.stack(
-                [transforms(Image.fromarray(img)).to(device) for img in imgs],
-                0)
-        return inputs
-
-    def _predict(self, images, device):
-        device = torch.device(device)
-        self.network.to(device)
-        inputs = self.prepare_inputs(images, device)
-        with torch.no_grad():
-            logits = self.network(inputs)
-        return logits
+        transforms = data.build_transforms(self.network.cfg, is_train=False)
+        imgs = images if isinstance(images, list) else [images]
+        batch = torch.stack([
+            transforms(image=np.array(img)[:, :, :3])['image'].to(device)
+            for img in imgs
+        ], 0)
+        return batch
 
     def predict(self, images, device='cuda'):
         """
         Args:
             images (dict): dict(footprint:np.array,image: np.array)
         """
-        logits = self._predict(images, device)
-        _, preds = torch.max(logits, 1)
-        preds = preds.to('cpu').numpy()
-        return [self.id2label[idx] for idx in preds]
-
-    def predict_prob(self, images, device='cuda'):
-        """
-        images (PIL.Image): list of PIL images
-        """
-        logits = self._predict(images, device)
-        probs = nn.Softmax(dim=1)(logits)
-        probs = probs.to('cpu').numpy()
-        return [{v: probs[idx, k]
-                 for k, v in self.id2label.items()}
-                for idx in range(len(probs))]
+        device = torch.device(device)
+        self.network.to(device)
+        batch = self.prepare_inputs(images, device)
+        with torch.no_grad():
+            logits = self.network(batch)
+        return self.network.postprocessing(logits)
