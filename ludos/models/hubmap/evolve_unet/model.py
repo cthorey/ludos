@@ -6,7 +6,7 @@ from box import Box
 import torch
 import torch.nn as nn
 from ludos.models import common
-from ludos.models.hubmap.evolve_unet import architectures, config, data
+from ludos.models.hubmap.evolve_unet import config, data, network
 from ludos.utils import dictionary, s3
 from PIL import Image
 
@@ -42,7 +42,7 @@ class Model(common.BaseModel):
 
     def build_network(self, cfg, expname=None):
         arch = cfg['model']['name']
-        self.network = architectures.ARCHS[arch](cfg, is_train=expname is None)
+        self.network = network.LightningUNet(cfg, is_train=expname is None)
         if self.expname is not None:
             checkpoint_path = os.path.join(
                 self.model_folder, '{}_weights.pth'.format(self.expname))

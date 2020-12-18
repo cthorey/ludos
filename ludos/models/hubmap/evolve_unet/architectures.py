@@ -1,3 +1,7 @@
-from ludos.models.hubmap.evolve_unet import unet
+import segmentation_models_pytorch as smp
 
-ARCHS = {'unet': unet.LightningUNet}
+ARCHS = {'unet': smp.Unet}
+
+
+def build(name, **params):
+    return ARCHS[name](**params)

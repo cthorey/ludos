@@ -1,9 +1,9 @@
 from box import Box
 
 import pytorch_lightning as pl
+import segmentation_models_pytorch as smp
 import torch
-from ludos.data.hubmap.data import PatchDataset
-from monai import data, losses, metrics
+from ludos.models.hubmap.evolve_unet import architectures, data
 from monai import transforms as tf
 from monai.networks.nets import UNet
 from torch import optim
@@ -11,7 +11,6 @@ from torch.utils.data import DataLoader
 
 OPTIMIZER = dict(Adam=optim.Adam, RMSprop=optim.RMSprop)
 SCHEDULER = dict(OneCycleLR=optim.lr_scheduler.OneCycleLR)
-LOSSES = dict(DiceLoss=losses.DiceLoss)
 
 
 class LightningUNet(pl.LightningModule):
@@ -24,41 +23,28 @@ class LightningUNet(pl.LightningModule):
         self.batch_size = self.cfg.solver.ims_per_batch
         self.learning_rate = self.cfg.solver.default_lr
         self.cfg = Box(cfg)
-        self.unet = UNet(**self.cfg.model.parameters)
-        self.criterion = LOSSES[self.cfg.solver.loss.name](
-            **self.cfg.solver.loss.get('params', {}))
-        self.augmentation = None
-        if cfg.get('augmentation', ''):
-            self.augmentation = augs.augmentations[cfg.get('augmentation', '')]
+        self.criterion = smp.utils.losses.DiceLoss(activation="sigmoid")
         self.postprocessing = tf.Compose([
             tf.Activations(sigmoid=True),
             tf.AsDiscrete(threshold_values=True)
         ])
-        self.metric = metrics.DiceMetric(sigmoid=False, reduction='none')
+        self.metrics = {
+            'dice': smp.utils.metrics.Fscore(),
+            'iou': smp.utils.metrics.IoU()
+        }
+        self.net = architectures.build(self.cfg.model.name,
+                                       **self.cfg.model.parameters)
 
     def setup(self, stage):
-        train_ds = PatchDataset(**self.cfg.datasets.train)
-        train_transforms = tf.Compose([
-            tf.LoadImaged(keys=["img", "seg"]),
-            tf.AddChanneld(keys=["seg"]),
-            tf.AsChannelFirstd(keys=["img"]),
-            tf.ScaleIntensityd(keys="img"),
-            tf.ToTensord(keys=["img", "seg"]),
-        ])
-        self.train_set = data.Dataset(train_ds.sequence,
-                                      transform=train_transforms)
+        tf = data.build_transforms(self.cfg, is_train=True)
+        self.train_set = data.TrainingDataset(transforms=tf,
+                                              **self.cfg.datasets.train)
 
-        val_ds = PatchDataset(**self.cfg.datasets.test)
-        val_transforms = tf.Compose([
-            tf.LoadImaged(keys=["img", "seg"]),
-            tf.AddChanneld(keys=["seg"]),
-            tf.AsChannelFirstd(keys=["img"]),
-            tf.ScaleIntensityd(keys="img"),
-            tf.ToTensord(keys=["img", "seg"]),
-        ])
-        self.validation_set = data.Dataset(val_ds.sequence,
-                                           transform=val_transforms)
-        self.test_set = data.Dataset(val_ds.sequence, transform=val_transforms)
+        tf = data.build_transforms(self.cfg, is_train=False)
+        self.validation_set = data.TrainingDataset(transforms=tf,
+                                                   **self.cfg.datasets.test)
+        self.test_set = data.TrainingDataset(transforms=tf,
+                                             **self.cfg.datasets.test)
 
     def train_dataloader(self):
         return DataLoader(self.train_set,
@@ -78,10 +64,10 @@ class LightningUNet(pl.LightningModule):
                           num_workers=self.cfg.dataloader.num_workers)
 
     def forward(self, x):
-        return self.unet(x)
+        return self.net(x)
 
     def training_step(self, batch, batch_idx):
-        images, targets = batch['img'], batch['seg']
+        images, targets = batch
         preds = self(images)
         loss = self.criterion(preds, targets)
         self.log('train_loss',
@@ -93,18 +79,22 @@ class LightningUNet(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        images, targets = batch['img'], batch['seg']
+        images, targets = batch
         logits = self(images)
         loss = self.criterion(logits, targets)
         self.log('val_loss', loss, on_epoch=True, prog_bar=True, logger=True)
         predictions = self.postprocessing(logits)
-        dices = self.metric(predictions, targets)
-        return {'dices': dices, 'val_loss': loss}
+        metrics = {'loss': torch.tensor([loss])}
+        for key, metric in self.metrics.items():
+            metrics[key] = torch.tensor([metric(predictions, targets)])
+        return metrics
 
     def validation_epoch_end(self, outputs):
         logs = dict()
-        logs['val_dice'] = torch.cat([r['dices'] for r in outputs]).mean()
-        logs['val_loss'] = torch.stack([x['val_loss'] for x in outputs]).mean()
+        metrics = outputs[0].keys()
+        for metric in metrics:
+            arr = [r[metric] for r in outputs]
+            logs['val_{}'.format(metric)] = torch.cat(arr).mean()
         self.log_dict(logs, prog_bar=True, logger=True)
 
     def test_step(self, batch, batch_idx):
