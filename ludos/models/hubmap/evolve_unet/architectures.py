@@ -2,7 +2,6 @@ import segmentation_models_pytorch as smp
 from ludos.models.hubmap.evolve_unet import unet
 
 ARCHS = {
-    'smpMAnet': smp.MAnet,
     'smpunetplusplus': smp.UnetPlusPlus,
     'smpunet': smp.Unet,
     'basicunet': unet.BasicUnet,

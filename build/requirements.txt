@@ -1,7 +1,7 @@
 tqdm
 albumentations
 ipywidgets
-segmentation_models_pytorch
+git+https://github.com/qubvel/segmentation_models.pytorch
 transforms3d
 visdom
 pytorch_lightning
