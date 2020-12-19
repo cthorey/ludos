@@ -87,6 +87,11 @@ class LightningUNet(pl.LightningModule):
         metrics = {'loss': torch.tensor([loss])}
         for key, metric in self.metrics.items():
             metrics[key] = torch.tensor([metric(predictions, targets)])
+            self.log('val_{}'.format(key),
+                     metrics[key],
+                     on_epoch=True,
+                     prog_bar=True,
+                     logger=True)
         return metrics
 
     def validation_epoch_end(self, outputs):
