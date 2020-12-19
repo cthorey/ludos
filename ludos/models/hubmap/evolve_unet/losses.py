@@ -12,7 +12,7 @@ class Loss(nn.Module):
     def __init__(self, bce=1.0, dice=0.5, lovasz=0.0, soft_bce=True):
         super().__init__()
         if soft_bce:
-            self.bce = losses.soft_bce.SoftBCEWithLogitsLoss()
+            self.bce = losses.soft_bce.SoftBCEWithLogitsLoss(smooth_factor=0.1)
         else:
             self.bce = nn.BCEWithLogitsLoss()
         self.dice = DiceLoss(activation=None)

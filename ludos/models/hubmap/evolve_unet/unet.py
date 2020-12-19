@@ -5,7 +5,7 @@ from torch.nn import functional as F
 
 
 class EncoderBlock(nn.Module):
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, scse_block=False):
         super(EncoderBlock, self).__init__()
         self.enc0 = networks.blocks.Convolution(dimensions=2,
                                                 in_channels=in_channels,
@@ -13,16 +13,20 @@ class EncoderBlock(nn.Module):
         self.enc1 = networks.blocks.Convolution(dimensions=2,
                                                 in_channels=out_channels,
                                                 out_channels=out_channels)
-        self.maxpool = nn.MaxPool2d(kernel_size=(2, 2))
+        self.scse_block = scse_block
+        if self.scse_block:
+            self.scse = SCSE(in_channels=out_channels, reduction=2)
 
     def forward(self, x):
         x1 = self.enc0(x)
         x1 = self.enc1(x1)
+        if self.scse_block:
+            x1 = self.scse(x1)
         return x1
 
 
 class DecoderBlock(nn.Module):
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, scse_block=False):
         super(DecoderBlock, self).__init__()
         self.up = networks.blocks.Convolution(dimensions=2,
                                               in_channels=in_channels,
@@ -36,17 +40,22 @@ class DecoderBlock(nn.Module):
         self.dec1 = networks.blocks.Convolution(dimensions=2,
                                                 in_channels=out_channels,
                                                 out_channels=out_channels)
+        self.scse_block = scse_block
+        if self.scse_block:
+            self.scse = SCSE(in_channels=out_channels, reduction=2)
 
     def forward(self, x, e):
         x1 = self.up(x)
         x1 = torch.cat((x1, e), axis=1)
         x1 = self.dec0(x1)
         x1 = self.dec1(x1)
+        if self.scse_block:
+            x1 = self.scse(x1)
         return x1
 
 
 class PixelShuffleDecoderBlock(nn.Module):
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, scse_block=False):
         super(PixelShuffleDecoderBlock, self).__init__()
         self.up = networks.blocks.SubpixelUpsample(dimensions=2,
                                                    in_channels=in_channels)
@@ -59,12 +68,17 @@ class PixelShuffleDecoderBlock(nn.Module):
         self.dec1 = networks.blocks.Convolution(dimensions=2,
                                                 in_channels=out_channels,
                                                 out_channels=out_channels)
+        self.scse_block = scse_block
+        if self.scse_block:
+            self.scse = SCSE(in_channels=out_channels, reduction=2)
 
     def forward(self, x, e):
         x1 = self.halve(self.up(x))
         x1 = torch.cat((x1, e), axis=1)
         x1 = self.dec0(x1)
         x1 = self.dec1(x1)
+        if self.scse_block:
+            x1 = self.scse(x1)
         return x1
 
 
@@ -91,6 +105,72 @@ class FPN(nn.Module):
         ]
         hcs.append(last_layer)
         return torch.cat(hcs, dim=1)
+
+
+class SCSE(nn.Module):
+    def __init__(self, in_channels, reduction):
+        super().__init__()
+        self.cse_block = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Conv2d(in_channels, in_channels // 2, kernel_size=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(in_channels // 2, in_channels, kernel_size=1),
+            nn.Sigmoid())
+
+        self.sse_block = nn.Sequential(
+            nn.Conv2d(in_channels, 1, kernel_size=1), nn.Sigmoid())
+
+    def forward(self, x):
+        return self.sse_block(x) * x + self.cse_block(x) * x
+
+
+class SESubPixelNetWithFPN(nn.Module):
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.enc0 = EncoderBlock(in_channels=3,
+                                 out_channels=64,
+                                 scse_block=True)
+        self.m0 = nn.MaxPool2d(kernel_size=(2, 2))
+        self.enc1 = EncoderBlock(in_channels=64,
+                                 out_channels=128,
+                                 scse_block=True)
+        self.m1 = nn.MaxPool2d(kernel_size=(2, 2))
+        self.enc2 = EncoderBlock(in_channels=128,
+                                 out_channels=256,
+                                 scse_block=True)
+        self.m2 = nn.MaxPool2d(kernel_size=(2, 2))
+        self.aspp = networks.blocks.SimpleASPP(spatial_dims=2,
+                                               in_channels=256,
+                                               conv_out_channels=128)
+        self.dec2 = PixelShuffleDecoderBlock(in_channels=512,
+                                             out_channels=256,
+                                             scse_block=True)
+        self.dec1 = PixelShuffleDecoderBlock(in_channels=256,
+                                             out_channels=128,
+                                             scse_block=True)
+        self.dec0 = PixelShuffleDecoderBlock(in_channels=128,
+                                             out_channels=64,
+                                             scse_block=True)
+        self.fpn = FPN([512, 256, 128], [16] * 3)
+        self.drop = nn.Dropout2d(0.1)
+        self.head = nn.Conv2d(in_channels=3 * 16 + 64,
+                              out_channels=1,
+                              kernel_size=(1, 1))
+
+    def forward(self, x):
+        e0 = self.enc0(x)  # 64x256x256
+        f0 = self.m0(e0)  # 64x128x128
+        e1 = self.enc1(f0)  # 128x128x128
+        f1 = self.m1(e1)  # 128x64x64
+        e2 = self.enc2(f1)  # 256x64x64
+        f2 = self.m2(e2)  # 256x32x32
+        return f2
+        bottom = self.aspp(f2)  #512x32x32
+        d2 = self.dec2(bottom, e2)  #256x64x64
+        d1 = self.dec1(d2, e1)  #128x128x128
+        d0 = self.dec0(d1, e0)  #64x256x256
+        final = self.fpn([bottom, d2, d1], d0)
+        return self.head(self.drop(final))
 
 
 class SubPixelNetWithFPN(nn.Module):

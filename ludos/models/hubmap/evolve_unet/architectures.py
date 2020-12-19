@@ -8,6 +8,7 @@ ARCHS = {
     'basicunet': unet.BasicUnet,
     'subpixelunet': unet.SubPixelNet,
     'subpixelunetwithFPN': unet.SubPixelNetWithFPN,
+    'sesubpixelunetwithFPN': unet.SESubPixelNetWithFPN,
     'asppunet': unet.ASPPUnet
 }
 
