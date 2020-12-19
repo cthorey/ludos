@@ -43,8 +43,7 @@ class LightningUNet(pl.LightningModule):
         tf = data.build_transforms(self.cfg, is_train=False)
         self.validation_set = data.TrainingDataset(transforms=tf,
                                                    **self.cfg.datasets.test)
-        self.test_set = data.TrainingDataset(transforms=tf,
-                                             **self.cfg.datasets.test)
+        self.test_set = self.validation_set
 
     def train_dataloader(self):
         return DataLoader(self.train_set,
@@ -82,16 +81,12 @@ class LightningUNet(pl.LightningModule):
         images, targets = batch
         logits = self(images)
         loss = self.criterion(logits, targets)
-        self.log('val_loss', loss, on_epoch=True, prog_bar=True, logger=True)
         predictions = self.postprocessing(logits)
         metrics = {'loss': torch.tensor([loss])}
         for key, metric in self.metrics.items():
             metrics[key] = torch.tensor([metric(predictions, targets)])
-            self.log('val_{}'.format(key),
-                     metrics[key],
-                     on_epoch=True,
-                     prog_bar=True,
-                     logger=True)
+            self.log('val_{}'.format(key), metrics[key])
+        self.log('val_loss', loss)
         return metrics
 
     def validation_epoch_end(self, outputs):
