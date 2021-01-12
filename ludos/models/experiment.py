@@ -16,9 +16,9 @@ from box import Box
 import optuna
 import pandas as pd
 import torch
+from clearml import Task
 from ludos.models import common
 from ludos.utils import dictionary, orm, s3
-from trains import Task
 
 ROOT_DIR = os.environ['ROOT_DIR']
 

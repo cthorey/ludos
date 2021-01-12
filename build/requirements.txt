@@ -2,6 +2,7 @@ tqdm
 albumentations
 ipywidgets
 git+https://github.com/qubvel/segmentation_models.pytorch
+git+https://github.com/qubvel/ttach
 transforms3d
 visdom
 pytorch_lightning
@@ -12,7 +13,8 @@ train
 pytorch-lightning-bolts
 monai[all]
 scikit-image
-trains
+clearml
+jedi==0.17.2
 optuna
 cython
 fire

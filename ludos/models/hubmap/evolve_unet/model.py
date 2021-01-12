@@ -11,6 +11,18 @@ from ludos.utils import dictionary, s3
 from PIL import Image
 
 
+def mask2rle(img):
+    '''
+    img: numpy array, 1 - mask, 0 - background
+    Returns run length as string formated
+    '''
+    pixels = img.T.flatten()
+    pixels = np.concatenate([[0], pixels, [0]])
+    runs = np.where(pixels[1:] != pixels[:-1])[0] + 1
+    runs[1::2] -= runs[::2]
+    return ' '.join(str(x) for x in runs)
+
+
 def get_cfg(config_name: str = ""):
     default_cfg = config.get().to_dict()
     flatten_default_cfg = dictionary.flatten(default_cfg)
@@ -72,4 +84,24 @@ class Model(common.BaseModel):
         batch = self.prepare_inputs(images, device)
         with torch.no_grad():
             logits = self.network(batch)
+        return self.network.postprocessing(logits)
+
+    def predict_from_batch(self, batch, device='cuda'):
+        device = torch.device(device)
+        self.network.to(device)
+        with torch.no_grad():
+            logits = self.network(batch.to(device))
+        return self.network.postprocessing(logits)
+
+    def predict_with_tta_from_batch(self, batch, tf, device='cuda'):
+        device = torch.device(device)
+        self.network.to(device)
+        results = []
+        for transformer in tf:
+            abatch = transformer.augment_image(batch.to(device))
+            with torch.no_grad():
+                logits = self.network(abatch)
+            logits = transformer.deaugment_mask(logits)
+            results.append(logits)
+        logits = torch.stack(results).mean(0)
         return self.network.postprocessing(logits)

@@ -30,7 +30,7 @@ notebook: ## Launch a notebook
 	@docker run --rm -ti \
 		--volume ~/.aws:/root/.aws \
     --volume ~/.dbdroplet:/root/.pgpass \
-    --volume ~/.trains.conf.droplet:/root/trains.conf \
+    --volume ~/.clearml.conf.droplet:/root/clearml.conf \
 		--volume ~/workdir/$(REPO):/workdir \
 		--volume ~/workdir/training_config:/workdir/training_config \
     --volume /mnt/hdd/data:/workdir/data \
