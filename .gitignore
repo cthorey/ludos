@@ -1,4 +1,5 @@
 notebooks/*
+.pgpass
 trains
 *__pycache__*
 *.pyc

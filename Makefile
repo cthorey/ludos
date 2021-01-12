@@ -28,9 +28,10 @@ build: ## Build docker image
 notebook: ## Launch a notebook
 	$(info *** Launch a serving server on requested port)
 	@docker run --rm -ti \
+    --name ludos_notebook \
 		--volume ~/.aws:/root/.aws \
-    --volume ~/.dbdroplet:/root/.pgpass \
-    --volume ~/.clearml.conf.droplet:/root/clearml.conf \
+    --volume ~/workdir/$(REPO)/.pgpass:/root/.pgpass \
+    --volume ~/.clearml.conf:/root/clearml.conf \
 		--volume ~/workdir/$(REPO):/workdir \
 		--volume ~/workdir/training_config:/workdir/training_config \
     --volume /mnt/hdd/data:/workdir/data \
