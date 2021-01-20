@@ -1,5 +1,8 @@
+import os
+
 from box import Box
 
+import torch
 from ludos.models import common
 from ludos.models.playground.vae import config, network
 from ludos.utils import dictionary, s3
@@ -31,20 +34,23 @@ class Model(common.BaseModel):
                                     model_task=model_task,
                                     model_description=model_description,
                                     expname=expname)
-        if expname is not None:
-            self.build_network(cfg, expname=expname)
-
-    def build_network(self, cfg, expname=None):
-        self.network = network.VAE(cfg)
         if self.expname is not None:
-            checkpoint_path = os.path.join(
-                self.model_folder, '{}_weights.pth'.format(self.expname))
-            if not os.path.isfile(checkpoint_path):
-                s3.download_from_bucket(self.bucket, checkpoint_path)
-            print('Reloading from {}'.format(checkpoint_path))
-            self.network = self.network.load_from_checkpoint(checkpoint_path,
-                                                             is_train=False)
-            self.network.eval()
+            self.load_network(expname=expname)
+
+    def build(self, cfg):
+        self.network = network.VAE(cfg)
+        self.network.setup('train')
+
+    def load_network(self, expname):
+        checkpoint_path = os.path.join(self.model_folder,
+                                       '{}_weights.pth'.format(self.expname))
+        common.download_weight(checkpoint_path)
+        checkpoint = torch.load(checkpoint_path)
+        cfg = checkpoint['extra']['cfg']
+        self.network = network.VAE(cfg)
+        self.network = self.network.load_from_checkpoint(checkpoint_path,
+                                                         is_train=False)
+        self.network.eval()
 
     def generate_sample(self):
         pass

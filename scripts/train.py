@@ -7,11 +7,11 @@ import docker
 import fire
 
 VOLUMES = [
-    '~/.aws:/root/.aws:rw', '~/.dbdroplet:/root/.pgpass:rw',
+    '~/.aws:/root/.aws:rw', '~/workdir/ludos/.pgpass:/root/.pgpass:rw',
     '~/workdir/training_config:/workdir/training_config:rw',
     '/mnt/hdd/models/cache:/root/.cache:rw', '~/workdir/ludos:/workdir:rw',
-    '~/.trains.conf.droplet:/root/trains.conf:rw',
-    '/mnt/hdd/data:/workdir/data:rw', '/mnt/hdd/models:/workdir/models:rw'
+    '~/.clearml.conf:/root/clearml.conf:rw', '/mnt/hdd/data:/workdir/data:rw',
+    '/mnt/hdd/models:/workdir/models:rw'
 ]
 ROOT_DIR = os.path.join(os.environ['HOME'], 'workdir', 'omatai')
 docker_client = docker.from_env()

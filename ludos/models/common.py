@@ -39,6 +39,13 @@ def get_cfg(model_task, model_name, config_name):
     return cfg
 
 
+def download_weight(weight_path):
+    if not os.path.isfile(weight_path):
+        bucket = s3.S3Bucket(bucket_name='omatai-project')
+        print('Downloading {}'.format(weight_path))
+        s3.download_from_bucket(bucket, weight_path)
+
+
 def load_model(model_task, model_name, expname):
     """
     general function to load a model

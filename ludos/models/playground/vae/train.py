@@ -32,8 +32,7 @@ def train(config_name, max_epochs=1, maintainer='clement', gpus=1):
 
     cfg = model.get_cfg(config_name)
     m = model.Model()
-    m.build_network(cfg.to_dict())
-    m.network.setup('train')
+    m.build(cfg.to_dict())
     task = experiment.LightningExperiment(model_task=m.model_task,
                                           model_name=m.model_name,
                                           config_name=config_name)
