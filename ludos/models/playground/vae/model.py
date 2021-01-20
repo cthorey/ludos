@@ -1,11 +1,14 @@
 import os
 
+import numpy as np
 from box import Box
 
 import torch
 from ludos.models import common
 from ludos.models.playground.vae import config, network
 from ludos.utils import dictionary, s3
+from pl_bolts.transforms.dataset_normalizations import cifar10_normalization
+from torchvision.utils import make_grid
 
 
 def get_cfg(config_name: str = ""):
@@ -52,5 +55,17 @@ class Model(common.BaseModel):
                                                          is_train=False)
         self.network.eval()
 
-    def generate_sample(self):
-        pass
+    def generate_sample(self, n):
+        # draw n z
+        mu = torch.zeros((n, self.network.cfg.network.latent_dim))
+        std = torch.ones((n, self.network.cfg.network.latent_dim))
+        dist = torch.distributions.Normal(mu, std)
+        z = dist.sample()
+        with torch.no_grad():
+            decoded = self.network.decoder(z)  # Bx3x32x32
+            dist = torch.distributions.Normal(decoded,
+                                              torch.ones_like(decoded))
+            preds = dist.sample()
+        normalize = cifar10_normalization()
+        mean, std = np.array(normalize.mean), np.array(normalize.std)
+        return (make_grid(preds).permute(1, 2, 0).numpy() * std + mean) * 255
