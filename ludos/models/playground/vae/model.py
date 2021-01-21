@@ -63,8 +63,9 @@ class Model(common.BaseModel):
         z = dist.sample()
         with torch.no_grad():
             decoded = self.network.decoder(z)  # Bx3x32x32
+            scale = torch.exp(self.network.log_p_xz_std)
             dist = torch.distributions.Normal(decoded,
-                                              torch.ones_like(decoded))
+                                              self.network.log_p_xz_std)
             preds = dist.sample()
         normalize = cifar10_normalization()
         mean, std = np.array(normalize.mean), np.array(normalize.std)
