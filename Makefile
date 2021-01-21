@@ -42,3 +42,15 @@ notebook: ## Launch a notebook
 		--publish 8887:8888 \
 		$(REPO):$(VERSION) /workdir/scripts/run_jupyter.sh
 
+.PHONY: serve
+serve: ## Launch a serving server on requested port
+	$(info *** Launch a serving server on requested port)
+	@docker run --rm -ti \
+		--volume /mnt/hdd/omatai/models:/workdir/models \
+		--volume ~/workdir/$(REPO):/workdir \
+		--volume ~/.aws:/root/.aws \
+    --volume ~/workdir/$(REPO)/.pgpass:/root/.pgpass \
+		--publish 5557:5557 \
+		--detach \
+    --name ludos_server \
+		$(REPO):$(VERSION) python3 scripts/serve.py --host=0.0.0.0 --port=5557

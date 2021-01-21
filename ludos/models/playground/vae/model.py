@@ -55,8 +55,8 @@ class Model(common.BaseModel):
                                                          is_train=False)
         self.network.eval()
 
-    def generate_sample(self, n):
-        # draw n z
+    def generate_sample(self, nrow):
+        n = nrow**2
         mu = torch.zeros((n, self.network.cfg.network.latent_dim))
         std = torch.ones((n, self.network.cfg.network.latent_dim))
         dist = torch.distributions.Normal(mu, std)
@@ -64,9 +64,10 @@ class Model(common.BaseModel):
         with torch.no_grad():
             decoded = self.network.decoder(z)  # Bx3x32x32
             scale = torch.exp(self.network.log_p_xz_std)
-            dist = torch.distributions.Normal(decoded,
-                                              self.network.log_p_xz_std)
+            dist = torch.distributions.Normal(decoded, scale)
             preds = dist.sample()
+            preds = decoded
         normalize = cifar10_normalization()
         mean, std = np.array(normalize.mean), np.array(normalize.std)
-        return (make_grid(preds).permute(1, 2, 0).numpy() * std + mean) * 255
+        return (make_grid(preds, nrow=nrow).permute(1, 2, 0).numpy() * std +
+                mean) * 25501

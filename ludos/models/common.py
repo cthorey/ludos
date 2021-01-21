@@ -50,7 +50,7 @@ def load_model(model_task, model_name, expname):
     """
     general function to load a model
     """
-    module_path = os.path.join('vegai', 'models', model_task, model_name,
+    module_path = os.path.join('ludos', 'models', model_task, model_name,
                                'model').replace('/', '.')
     try:
         model = import_module(module_path).Model(model_task=model_task,
