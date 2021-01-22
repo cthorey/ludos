@@ -54,7 +54,9 @@ class VAE(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         # encode the batch to the embedding
-        x, _ = batch
+        x = batch
+        if isinstance(x, list):
+            x, _ = batch
         feat = self.encoder(x)  # Bx512
 
         # produce the parameters of the distribution q_phi(z|x)

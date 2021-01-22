@@ -4,10 +4,12 @@ import fire
 
 import pytorch_lightning as pl
 from ludos.models import experiment
-from ludos.models.playground.vae import model
+from ludos.models.playground.vae import data, model
 from pl_bolts.datamodules import CIFAR10DataModule
 from pytorch_lightning import callbacks as pl_callbacks
 from pytorch_lightning import trainer
+
+DM = {'cifar10': CIFAR10DataModule, 'custom': data.DataModule}
 
 
 def get_callbacks(cfg, output_dir):
@@ -49,7 +51,7 @@ def train(config_name, max_epochs=1, maintainer='clement', gpus=1):
                          callbacks=cbacks,
                          **cfg.trainer)
     tr.trains_task = logger
-    dm = CIFAR10DataModule("/workdir/data/raw")
+    dm = DM[cfg.dm.name](**cfg.name.params)
     tr.fit(m.network, dm)
     task.upload_checkpoints(checkpoint.best_model_path,
                             expname,
