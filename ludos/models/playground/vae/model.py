@@ -8,6 +8,7 @@ from ludos.models import common
 from ludos.models.playground.vae import config, network
 from ludos.utils import dictionary, s3
 from pl_bolts.transforms.dataset_normalizations import cifar10_normalization
+from torchvision import transforms
 from torchvision.utils import make_grid
 
 
@@ -55,19 +56,39 @@ class Model(common.BaseModel):
                                                          is_train=False)
         self.network.eval()
 
-    def generate_sample(self, nrow):
+    def detect_anomaly(self, img, use_decoder_as_is=True):
+        cf10_transforms = transforms.Compose(
+            [transforms.ToTensor(),
+             cifar10_normalization()])
+        x = cf10_transforms(img).unsqueeze(0)
+        with torch.no_grad():
+            feats = self.network.encoder(x)
+            mu, log_var = self.network.fc_mu(feats), self.network.fc_var(feats)
+            std = torch.exp(log_var * 0.5)
+            z = torch.distributions.Normal(mu, std).sample()
+            preds = self.network.decoder(z)
+            if not use_decoder_as_is:
+                scale = torch.exp(self.network.log_p_xz_std)
+                dist = torch.distributions.Normal(preds, scale)
+                preds = dist.sample()
+        normalize = cifar10_normalization()
+        mean, std = np.array(normalize.mean), np.array(normalize.std)
+        return ((preds[0].permute(1, 2, 0).numpy() * std + mean) *
+                255).astype('uint8')
+
+    def generate_sample(self, nrow, use_decoder_as_is=True):
         n = nrow**2
         mu = torch.zeros((n, self.network.cfg.network.latent_dim))
         std = torch.ones((n, self.network.cfg.network.latent_dim))
         dist = torch.distributions.Normal(mu, std)
         z = dist.sample()
         with torch.no_grad():
-            decoded = self.network.decoder(z)  # Bx3x32x32
-            scale = torch.exp(self.network.log_p_xz_std)
-            dist = torch.distributions.Normal(decoded, scale)
-            preds = dist.sample()
-            preds = decoded
+            preds = self.network.decoder(z)  # Bx3x32x32
+            if not use_decoder_as_is:
+                scale = torch.exp(self.network.log_p_xz_std)
+                dist = torch.distributions.Normal(preds, scale)
+                preds = dist.sample()
         normalize = cifar10_normalization()
         mean, std = np.array(normalize.mean), np.array(normalize.std)
         return (make_grid(preds, nrow=nrow).permute(1, 2, 0).numpy() * std +
-                mean) * 25501
+                mean) * 255
