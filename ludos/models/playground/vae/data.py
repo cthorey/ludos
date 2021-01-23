@@ -136,4 +136,4 @@ class Dataset(object):
         img = Image.open(info['image_path'])
         if self.transforms is not None:
             img = self.transforms(img)
-        return np.array(img)
+        return img
