@@ -9,7 +9,7 @@ from pl_bolts.datamodules import CIFAR10DataModule
 from pytorch_lightning import callbacks as pl_callbacks
 from pytorch_lightning import trainer
 
-DM = {'cifar10': data.CCIFAR10DataModule, 'custom': data.DataModule}
+DM = {'cifar10': data.CIFAR10DataModule, 'custom': data.DataModule}
 
 
 def get_callbacks(cfg, output_dir):

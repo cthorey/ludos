@@ -7,9 +7,9 @@ from box import Box
 import pytorch_lightning as pl
 from ludos.utils import viz
 from PIL import Image
-from pl_bolts.datamodules import CIFAR10DataModule
 from torch.utils.data import DataLoader
 from torchvision import transforms as T
+from torchvision.datasets import CIFAR10
 from tqdm import tqdm
 
 ROOT_DIR = os.environ['ROOT_DIR']
@@ -34,9 +34,39 @@ def get_transforms(cfg, split='train'):
     return tf
 
 
-class CCIFAR10DataModule(CIFAR10DataModule):
+class CIFAR10DataModule(pl.LightningDataModule):
     def __init__(self, cfg):
-        super(CCIFAR10DataModule, self).__init__(DATA_PATH)
+        super(CIFAR10DataModule, self).__init__()
+        self.batch_size = cfg.dm.params.batch_size
+        self.num_workers = cfg.dm.params.num_workers
+        self.cfg = cfg
+
+    def prepare_data(self):
+        CIFAR10(DATA_PATH)
+
+    def setup(self, *args, **kwargs):
+        tf = get_transforms(self.cfg, split='train')
+        self.train_set = CIFAR10(DATA_PATH, train=True, transform=tf)
+
+        tf = get_transforms(self.cfg, split='validation')
+        self.validation_set = CIFAR10(DATA_PATH, train=False, transform=tf)
+
+    def train_dataloader(self):
+        return DataLoader(self.train_set,
+                          batch_size=self.batch_size,
+                          shuffle=True,
+                          sampler=None,
+                          num_workers=self.num_workers)
+
+    def val_dataloader(self):
+        return DataLoader(self.validation_set,
+                          batch_size=self.batch_size,
+                          num_workers=self.num_workers)
+
+    def test_dataloader(self):
+        return DataLoader(self.validation_set,
+                          batch_size=self.batch_size,
+                          num_workers=self.num_workers)
 
 
 class DataModule(pl.LightningDataModule):
