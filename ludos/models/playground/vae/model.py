@@ -5,7 +5,7 @@ from box import Box
 
 import torch
 from ludos.models import common
-from ludos.models.playground.vae import config, network
+from ludos.models.playground.vae import config, data, network
 from ludos.utils import dictionary, s3
 from pl_bolts.transforms.dataset_normalizations import cifar10_normalization
 from torchvision import transforms
@@ -41,6 +41,10 @@ class Model(common.BaseModel):
         if self.expname is not None:
             self.load_network(expname=expname)
 
+    @property
+    def normalization(self):
+        return self.network.cfg.dm.transforms.normalize
+
     def build(self, cfg):
         self.network = network.VAE(cfg)
         self.network.setup('train')
@@ -57,10 +61,8 @@ class Model(common.BaseModel):
         self.network.eval()
 
     def detect_anomaly(self, img, use_decoder_as_is=True):
-        cf10_transforms = transforms.Compose(
-            [transforms.ToTensor(),
-             cifar10_normalization()])
-        x = cf10_transforms(img).unsqueeze(0)
+        tf = data.get_transform(self.network.cfg, split='test')
+        x = tf(img).unsqueeze(0)
         with torch.no_grad():
             feats = self.network.encoder(x)
             mu, log_var = self.network.fc_mu(feats), self.network.fc_var(feats)
@@ -71,8 +73,8 @@ class Model(common.BaseModel):
                 scale = torch.exp(self.network.log_p_xz_std)
                 dist = torch.distributions.Normal(preds, scale)
                 preds = dist.sample()
-        normalize = cifar10_normalization()
-        mean, std = np.array(normalize.mean), np.array(normalize.std)
+        mean, std = np.array(self.normalization.mean), np.array(
+            self.normalization.std)
         return ((preds[0].permute(1, 2, 0).numpy() * std + mean) *
                 255).astype('uint8')
 
@@ -88,7 +90,7 @@ class Model(common.BaseModel):
                 scale = torch.exp(self.network.log_p_xz_std)
                 dist = torch.distributions.Normal(preds, scale)
                 preds = dist.sample()
-        normalize = cifar10_normalization()
-        mean, std = np.array(normalize.mean), np.array(normalize.std)
+        mean, std = np.array(self.normalization.mean), np.array(
+            self.normalization.std)
         return (make_grid(preds, nrow=nrow).permute(1, 2, 0).numpy() * std +
                 mean) * 255

@@ -9,7 +9,7 @@ from pl_bolts.datamodules import CIFAR10DataModule
 from pytorch_lightning import callbacks as pl_callbacks
 from pytorch_lightning import trainer
 
-DM = {'cifar10': CIFAR10DataModule, 'custom': data.DataModule}
+DM = {'cifar10': data.CCIFAR10DataModule, 'custom': data.DataModule}
 
 
 def get_callbacks(cfg, output_dir):
@@ -51,7 +51,7 @@ def train(config_name, max_epochs=1, maintainer='clement', gpus=1):
                          callbacks=cbacks,
                          **cfg.trainer)
     tr.trains_task = logger
-    dm = DM[cfg.dm.name](**cfg.name.params)
+    dm = DM[cfg.dm.name](cfg)
     tr.fit(m.network, dm)
     task.upload_checkpoints(checkpoint.best_model_path,
                             expname,

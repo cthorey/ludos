@@ -34,18 +34,23 @@ def get_transforms(cfg, split='train'):
     return tf
 
 
-class Cifar10DataModule():
-    pass
+class CCIFAR10DataModule(CIFAR10DataModule):
+    def __init__(self, cfg):
+        super(CCIFAR10DataModule, self).__init__(DATA_PATH)
 
 
 class DataModule(pl.LightningDataModule):
     def __init__(self, cfg):
-        self.batch_size = batch_size
-        self.data_name = data_name
-        self.num_workers = num_workers
-        self.tf = transforms
+        super(DataModule, self).__init__()
+        self.batch_size = cfg.dm.params.batch_size
+        self.data_name = cfg.dm.params.data_name
+        self.num_workers = cfg.dm.params.num_workers
+        self.cfg = cfg
 
-    def setup(self):
+    def prepare_data(self):
+        pass
+
+    def setup(self, stage):
         tf = get_transforms(self.cfg, split='train')
         self.train_set = Dataset(self.data_name, split='train', transforms=tf)
 
