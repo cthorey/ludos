@@ -25,6 +25,7 @@ C.network.lr = 0.0001
 C.network.enc_out_dim = 512
 C.network.latent_dim = 256
 C.network.input_height = 32
+C.network.loss = 'kl'
 
 # dm
 C.dm = Box()

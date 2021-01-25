@@ -7,6 +7,26 @@ from pl_bolts.models.autoencoders.components import (resnet18_decoder,
 from torch import nn
 
 
+def compute_kernel(x, y):
+    x_size = x.size(0)
+    y_size = y.size(0)
+    dim = x.size(1)
+    x = x.unsqueeze(1)  # (x_size, 1, dim)
+    y = y.unsqueeze(0)  # (1, y_size, dim)
+    tiled_x = x.expand(x_size, y_size, dim)
+    tiled_y = y.expand(x_size, y_size, dim)
+    kernel_input = (tiled_x - tiled_y).pow(2).mean(2) / float(dim)
+    return torch.exp(-kernel_input)  # (x_size, y_size)
+
+
+def compute_mmd(x, y):
+    x_kernel = compute_kernel(x, x)
+    y_kernel = compute_kernel(y, y)
+    xy_kernel = compute_kernel(x, y)
+    mmd = x_kernel.mean() + y_kernel.mean() - 2 * xy_kernel.mean()
+    return mmd
+
+
 class VAE(pl.LightningModule):
     """
     A vaiational encoder --> objective
@@ -87,29 +107,36 @@ class VAE(pl.LightningModule):
         p_xz = torch.distributions.Normal(p_xz_mu, scale)
         reconstruction_loss = p_xz.log_prob(x).sum(axis=(1, 2, 3))
 
-        # Then now we need to compute the KL divergence
-        # To do so, we need two distributions q and p.
-        # q we have already ;)
-        # for p we are using a multivariate normal
-        # with zero mean and unit variance
-        p = torch.distributions.Normal(torch.zeros_like(mu),
-                                       torch.ones_like(std))
-        log_pz = p.log_prob(z)
-        log_qzx = q_zx.log_prob(z)
+        # Then now we need to compute the divergence
+        divergence_type = self.cfg.network.get('loss', 'kl')
+        if divergence_type == 'kl':
+            # To do so, we need two distributions q and p.
+            # q we have already ;)
+            # for p we are using a multivariate normal
+            # with zero mean and unit variance
+            p = torch.distributions.Normal(torch.zeros_like(mu),
+                                           torch.ones_like(std))
+            log_pz = p.log_prob(z)
+            log_qzx = q_zx.log_prob(z)
 
-        kl = log_qzx - log_pz
-        # this bit is a bit tricky. Since these are log probabilities
-        # we can sum all the individual dimensions
-        # to give us the multi-dimensional  probability
-        kl = kl.sum(-1)
+            kl = log_qzx - log_pz
+            # this bit is a bit tricky. Since these are log probabilities
+            # we can sum all the individual dimensions
+            # to give us the multi-dimensional  probability
+            divergence = kl.sum(-1)
+        elif divergence_type == 'mmd':
+            p = torch.distributions.Normal(torch.zeros_like(mu),
+                                           torch.ones_like(std))
+            zprime = p.rsample()
+            divergence = -compute_mmd(z, zprime)
 
         # finally the loss is
-        elbo = (-reconstruction_loss + kl)
+        elbo = (-reconstruction_loss + divergence)
         loss = elbo.mean()
         self.log_dict({
             'loss': loss,
             'elbo': elbo.mean(),
-            'kl': kl.mean(),
+            'divergence': divergence.mean(),
             'recon_loss': reconstruction_loss.mean()
         })
 

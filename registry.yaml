@@ -1,4 +1,4 @@
 vae_playground:
   model_task: playground
   model_name: vae
-  expname: defaultt4
+  expname: cifar10t24
