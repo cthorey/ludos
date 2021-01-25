@@ -7,6 +7,7 @@ import torch
 from ludos.models import common
 from ludos.models.playground.vae import config, data, network
 from ludos.utils import dictionary, s3
+from PIL import Image
 from pl_bolts.transforms.dataset_normalizations import cifar10_normalization
 from torchvision import transforms
 from torchvision.utils import make_grid
@@ -60,8 +61,38 @@ class Model(common.BaseModel):
                                                          is_train=False)
         self.network.eval()
 
-    def detect_anomaly(self, img, use_decoder_as_is=True):
-        tf = data.get_transform(self.network.cfg, split='test')
+    def display_anomaly(self, x, preds, alpha, quantile):
+        # mse
+        mse = torch.mean(torch.pow(preds - x, 2), axis=1)[0]
+        mse /= mse.max()
+
+        mean, std = np.array(self.normalization.mean), np.array(
+            self.normalization.std)
+        image = ((x[0].permute(1, 2, 0).numpy() * std + mean) *
+                 255).astype('uint8')
+        reconstruction = ((preds[0].permute(1, 2, 0).numpy() * std + mean) *
+                          255).astype('uint8')
+
+        # mse
+        mse_img = mse.unsqueeze(-1).numpy() * np.array([255, 255, 255])
+
+        # mask imae
+        threshold = np.quantile(mse, quantile)
+        m = (mse > threshold).unsqueeze(-1).numpy() * np.array([0, 255, 0])
+        mask_img = (m * alpha + image * (1 - alpha)).astype('uint8')
+        img = mask_img * (m != 0) + image * (m == 0)
+
+        # top
+        top = np.hstack((image, reconstruction))
+        bottom = np.hstack((mse_img.astype('uint8'), img))
+        return Image.fromarray(np.vstack((top, bottom)))
+
+    def detect_anomaly(self,
+                       img,
+                       use_decoder_as_is=True,
+                       alpha=1,
+                       quantile=0.9):
+        tf = data.get_transforms(self.network.cfg, split='test')
         x = tf(img).unsqueeze(0)
         with torch.no_grad():
             feats = self.network.encoder(x)
@@ -73,10 +104,7 @@ class Model(common.BaseModel):
                 scale = torch.exp(self.network.log_p_xz_std)
                 dist = torch.distributions.Normal(preds, scale)
                 preds = dist.sample()
-        mean, std = np.array(self.normalization.mean), np.array(
-            self.normalization.std)
-        return ((preds[0].permute(1, 2, 0).numpy() * std + mean) *
-                255).astype('uint8')
+        return self.display_anomaly(x, preds, alpha, quantile)
 
     def generate_sample(self, nrow, use_decoder_as_is=True):
         n = nrow**2
