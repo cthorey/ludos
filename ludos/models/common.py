@@ -10,7 +10,6 @@ from importlib import import_module
 import numpy as np
 import yaml
 from box import Box
-
 from ludos.utils import dictionary, s3
 
 
@@ -26,8 +25,9 @@ CONFIG_FOLDER = os.path.join(ROOT_DIR, CONFIG_KEY)
 
 
 def get_config_path(model_task, model_name, config_name):
-    return os.path.join(CONFIG_FOLDER, 'models', model_task, model_name,
-                        '{}.yaml'.format(config_name))
+    return os.path.join(
+        CONFIG_FOLDER, 'models', model_task, model_name,
+        '{}.yaml'.format(config_name))
 
 
 def get_cfg(model_task, model_name, config_name):
@@ -41,7 +41,7 @@ def get_cfg(model_task, model_name, config_name):
 
 def download_weight(weight_path):
     if not os.path.isfile(weight_path):
-        bucket = s3.S3Bucket(bucket_name='omatai-project')
+        bucket = s3.S3Bucket(bucket_name='s3ludos')
         print('Downloading {}'.format(weight_path))
         s3.download_from_bucket(bucket, weight_path)
 
@@ -50,12 +50,11 @@ def load_model(model_task, model_name, expname):
     """
     general function to load a model
     """
-    module_path = os.path.join('ludos', 'models', model_task, model_name,
-                               'model').replace('/', '.')
+    module_path = os.path.join(
+        'ludos', 'models', model_task, model_name, 'model').replace('/', '.')
     try:
-        model = import_module(module_path).Model(model_task=model_task,
-                                                 model_name=model_name,
-                                                 expname=expname)
+        model = import_module(module_path).Model(
+            model_task=model_task, model_name=model_name, expname=expname)
     except:
         raise ModelLoadingError()
     model.network.eval()
@@ -67,12 +66,13 @@ class BaseModel(object):
     """
     Base class for the model
     """
-    def __init__(self,
-                 model_name: str,
-                 model_task: str,
-                 model_description: str = "",
-                 expname: str = None,
-                 model_type: str = 'models'):
+    def __init__(
+            self,
+            model_name: str,
+            model_task: str,
+            model_description: str = "",
+            expname: str = None,
+            model_type: str = 'models'):
         """
         Args:
             model_type (str): Type of the model, 'models'
@@ -85,9 +85,9 @@ class BaseModel(object):
         self.model_name = model_name
         self.model_task = model_task
         self.model_description = model_description
-        self.model_folder = os.path.join(ROOT_DIR, self.model_type,
-                                         self.model_task, self.model_name)
-        self.bucket = s3.S3Bucket(bucket_name='omatai-project')
+        self.model_folder = os.path.join(
+            ROOT_DIR, self.model_type, self.model_task, self.model_name)
+        self.bucket = s3.S3Bucket(bucket_name='s3ludos')
         if not os.path.isdir(self.model_folder):
             os.makedirs(self.model_folder)
         self.expname = expname
@@ -96,8 +96,8 @@ class BaseModel(object):
         """
         Load a specfic experiment
         """
-        experiment_file = os.path.join(self.model_folder,
-                                       '{}_experiment.json'.format(expname))
+        experiment_file = os.path.join(
+            self.model_folder, '{}_experiment.json'.format(expname))
         if not os.path.isfile(experiment_file):
             s3.download_from_bucket(self.bucket, experiment_file)
         with open(experiment_file, 'r') as f:

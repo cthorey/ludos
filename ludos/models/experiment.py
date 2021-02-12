@@ -10,12 +10,11 @@ import uuid
 from functools import wraps
 
 import numpy as np
-import yaml
-from box import Box
-
 import optuna
 import pandas as pd
 import torch
+import yaml
+from box import Box
 from clearml import Task
 from ludos.models import common
 from ludos.utils import dictionary, orm, s3
@@ -37,13 +36,14 @@ def spin_on_error(function):
             time.sleep(10000000)
 
 
-def retrieve_summary(model_task='.*',
-                     model_name='.*',
-                     dataset_name='.*',
-                     expname='.*',
-                     score_name='.*',
-                     split='.*',
-                     model_id=None):
+def retrieve_summary(
+        model_task='.*',
+        model_name='.*',
+        dataset_name='.*',
+        expname='.*',
+        score_name='.*',
+        split='.*',
+        model_id=None):
     """
     Retrieve previously computed summary
     """
@@ -86,16 +86,17 @@ class Experiment(object):
         self.model_task = model_task
         self.model_name = model_name
         self.config_name = config_name
-        self.bucket = s3.S3Bucket(bucket_name='omatai-project')
-        self.model_folder = os.path.join(ROOT_DIR, "models", self.model_task,
-                                         self.model_name)
+        self.bucket = s3.S3Bucket(bucket_name='s3ludos')
+        self.model_folder = os.path.join(
+            ROOT_DIR, "models", self.model_task, self.model_name)
 
     def get_model_id(self, expname):
         """Return a uniaue ID for the model
         """
-        entry = dict(model_task=self.model_task,
-                     model_name=self.model_name,
-                     expname=expname)
+        entry = dict(
+            model_task=self.model_task,
+            model_name=self.model_name,
+            expname=expname)
         return hashlib.sha1(json.dumps(entry).encode()).hexdigest()
 
     def next_trial_name(self):
@@ -105,14 +106,13 @@ class Experiment(object):
             results = sess.query(orm.Modelzoo).filter(
                 orm.Modelzoo.model_task == self.model_task).filter(
                     orm.Modelzoo.model_name == self.model_name).filter(
-                        orm.Modelzoo.expname.op('~')("{}.*".format(
-                            self.config_name))).all()
+                        orm.Modelzoo.expname.op('~')(
+                            "{}.*".format(self.config_name))).all()
             expnames = [r.expname for r in results]
             if not expnames:
                 idx = 0
             else:
-                idx = max(
-                    [int(expname.split('t')[-1]) for expname in expnames])
+                idx = max([int(expname.split('t')[-1]) for expname in expnames])
         expname = "{}t{}".format(self.config_name, idx + 1)
         return expname
 
@@ -121,9 +121,10 @@ class Experiment(object):
         modelzoo.
         """
         with orm.session_scope() as sess:
-            entry = dict(model_task=self.model_task,
-                         model_name=self.model_name,
-                         expname=expname)
+            entry = dict(
+                model_task=self.model_task,
+                model_name=self.model_name,
+                expname=expname)
             model_id = self.get_model_id(expname)
             entry = orm.Modelzoo(
                 model_id=model_id,
@@ -136,12 +137,13 @@ class Experiment(object):
         """Update the modelzoo record for this task.
         """
         with orm.session_scope() as sess:
-            entry = dict(model_task=self.model_task,
-                         model_name=self.model_name,
-                         expname=expname)
+            entry = dict(
+                model_task=self.model_task,
+                model_name=self.model_name,
+                expname=expname)
             model_id = hashlib.sha1(json.dumps(entry).encode()).hexdigest()
-            entry = sess.query(orm.Modelzoo).filter(
-                orm.Modelzoo.model_id == model_id).all()[0]
+            entry = sess.query(
+                orm.Modelzoo).filter(orm.Modelzoo.model_id == model_id).all()[0]
             for key, value in kwargs.items():
                 setattr(entry, key, value)
 
@@ -184,9 +186,10 @@ class LightningExperiment(Experiment):
     """
     def start(self, expname: str):
         self.log_task(expname)
-        task = Task.init(project_name=self.model_task,
-                         task_name="{}/{}".format(self.model_name, expname),
-                         reuse_last_task_id=False)
+        task = Task.init(
+            project_name=self.model_task,
+            task_name="{}/{}".format(self.model_name, expname),
+            reuse_last_task_id=False)
         return task
 
     def upload_checkpoints(self, checkpoint_path, expname, **kwargs):
@@ -197,12 +200,13 @@ class LightningExperiment(Experiment):
         data['extra'] = kwargs
         torch.save(data, checkpoint_path)
         # upload to s3
-        key = 'models/{}/{}/{}_weights.pth'.format(self.model_task,
-                                                   self.model_name, expname)
+        key = 'models/{}/{}/{}_weights.pth'.format(
+            self.model_task, self.model_name, expname)
         print('Uploading {} to s3'.format(key))
         self.bucket.upload_from_file(checkpoint_path, key, overwrite=True)
 
-    def end(self,
+    def end(
+            self,
             expname: str,
             dataset_name: str,
             score_name: str,
@@ -210,13 +214,14 @@ class LightningExperiment(Experiment):
             split: str = "validation",
             status: str = "success",
             maintainer: str = "clement"):
-        self.update_task(expname,
-                         dataset_name=dataset_name,
-                         score_name=score_name,
-                         score=score,
-                         status=status,
-                         split=split,
-                         maintainer=maintainer)
+        self.update_task(
+            expname,
+            dataset_name=dataset_name,
+            score_name=score_name,
+            score=score,
+            status=status,
+            split=split,
+            maintainer=maintainer)
 
 
 class Optuna(object):
@@ -262,25 +267,27 @@ class Optuna(object):
                name: 'model.arch_details.head.lin_ftrs'
                values: [[[512,1024,2048], [4096, 4096], [512,256], [256,256], [1024, 1024]]]
     """
-    def __init__(self,
-                 model_task,
-                 model_name,
-                 exploration_name,
-                 training_method,
-                 direction='minimize',
-                 reset=False):
+    def __init__(
+            self,
+            model_task,
+            model_name,
+            exploration_name,
+            training_method,
+            direction='minimize',
+            reset=False):
         """
         Optuna based explorer.
         """
-        self.config_folder = os.path.join(common.CONFIG_FOLDER, 'models',
-                                          model_task, model_name)
+        self.config_folder = os.path.join(
+            common.CONFIG_FOLDER, 'models', model_task, model_name)
         self.exploration_name = exploration_name
-        path = os.path.join(self.config_folder, 'explorations',
-                            '{}.yaml'.format(exploration_name))
+        path = os.path.join(
+            self.config_folder, 'explorations',
+            '{}.yaml'.format(exploration_name))
         self.exploration = Box.from_yaml(open(path, 'r'))
 
-        optuna_folder = os.path.join(self.config_folder, 'explorations',
-                                     'optuna')
+        optuna_folder = os.path.join(
+            self.config_folder, 'explorations', 'optuna')
         if not os.path.isdir(optuna_folder):
             os.makedirs(optuna_folder)
         db_path = '{}/{}.db'.format(optuna_folder, self.exploration_name)
@@ -364,11 +371,12 @@ class Bender(object):
                  high: 0.0005
     """
     def __init__(self, model_task, model_name, exploration_name):
-        self.config_folder = os.path.join(common.CONFIG_FOLDER, 'models',
-                                          model_task, model_name)
+        self.config_folder = os.path.join(
+            common.CONFIG_FOLDER, 'models', model_task, model_name)
         self.exploration_name = exploration_name
-        path = os.path.join(self.config_folder, 'explorations',
-                            '{}.yaml'.format(exploration_name))
+        path = os.path.join(
+            self.config_folder, 'explorations',
+            '{}.yaml'.format(exploration_name))
         self.exploration = Box.from_yaml(open(path, 'r'))
 
     def _suggest_params(self):

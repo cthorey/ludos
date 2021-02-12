@@ -5,7 +5,7 @@ import shutil
 
 from ludos.utils import s3
 
-bucket = s3.S3Bucket('omatai-project')
+bucket = s3.S3Bucket('s3ludos')
 ROOT_DIR = os.environ['ROOT_DIR']
 DATA_PATH = os.path.join(ROOT_DIR, 'data', 'interim')
 

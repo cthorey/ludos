@@ -1,4 +1,5 @@
 notebooks/*
+training_config/
 .pgpass
 trains
 *__pycache__*

@@ -33,7 +33,7 @@ notebook: ## Launch a notebook
     --volume ~/workdir/$(REPO)/.pgpass:/root/.pgpass \
     --volume ~/.clearml.conf:/root/clearml.conf \
 		--volume ~/workdir/$(REPO):/workdir \
-		--volume ~/workdir/training_config:/workdir/training_config \
+		--volume ~/workdir/$(REPO)/training_config:/workdir/training_config \
     --volume /mnt/hdd/data:/workdir/data \
     --volume /mnt/hdd/models:/workdir/models \
 		--volume /mnt/hdd/models/cache:/root/.cache \
